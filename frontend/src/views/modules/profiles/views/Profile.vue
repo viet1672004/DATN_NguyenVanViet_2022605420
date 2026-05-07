@@ -1,0 +1,266 @@
+<template>
+  <div class="profile-page">
+
+    <div class="card">
+
+      <!-- TAB -->
+      <div class="tabs">
+        <div 
+          class="tab" 
+          :class="{ active: activeTab === 'profile' }"
+          @click="activeTab = 'profile'"
+        >
+          Hồ sơ
+        </div>
+
+        <div 
+          class="tab" 
+          :class="{ active: activeTab === 'password' }"
+          @click="activeTab = 'password'"
+        >
+          Mật khẩu
+        </div>
+      </div>
+
+      <!-- HEADER ACTION -->
+      <div class="box-header">
+        <button class="btn-save" @click="handleSubmit">💾 Lưu lại</button>
+      </div>
+
+      <!-- FORM PROFILE -->
+      <form v-if="activeTab === 'profile'" class="box-body">
+
+        <div class="form-group">
+          <label>Họ và tên</label>
+          <input type="text" v-model="form.name" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input type="text" v-model="form.email" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label>Số điện thoại</label>
+          <input type="text" v-model="form.phone" class="form-control" />
+        </div>
+
+      </form>
+
+      <!-- FORM PASSWORD -->
+      <form v-else class="box-body">
+
+        <div class="form-group">
+          <label>Mật khẩu hiện tại</label>
+          <input type="password" v-model="password.current" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label>Mật khẩu mới</label>
+          <input type="password" v-model="password.new" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label>Xác nhận mật khẩu</label>
+          <input type="password" v-model="password.confirm" class="form-control" />
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+</template>
+
+<script setup>
+import { reactive, ref, onMounted } from "vue";
+import { useAuthStore } from "@/views/modules/auths/provider/store";
+import { useRouter } from "vue-router";
+import profileApi from "@/views/modules/profiles/provider/api";
+
+const store = useAuthStore();
+const router = useRouter();
+
+/* TAB */
+const activeTab = ref("profile");
+
+/* PROFILE FORM */
+const form = reactive({
+  name: "",
+  email: "",
+  phone: "",
+  description: "",
+});
+
+/* PASSWORD FORM */
+const password = reactive({
+  current: "",
+  new: "",
+  confirm: ""
+});
+
+/* LOAD USER */
+onMounted(() => {
+  if (store.user) {
+    form.name = store.user.Name;
+    form.email = store.user.Email;
+    form.phone = store.user.Phone;
+  }
+});
+
+/* UPDATE PROFILE */
+const update = async () => {
+  try {
+    await profileApi.updateProfile(form);
+
+    const res = await profileApi.me(); 
+    store.setUser(res.data);
+
+    alert("Cập nhật thành công");
+  } catch (err) {
+    console.error(err.response?.data);
+  }
+};
+
+/* CHANGE PASSWORD */
+const changePassword = async () => {
+  if (!password.current || !password.new || !password.confirm) {
+    alert("Vui lòng nhập đầy đủ thông tin");
+    return;
+  }
+
+  if (password.new !== password.confirm) {
+    alert("Mật khẩu không khớp");
+    return;
+  }
+
+  try {
+    await profileApi.changePassword(password);
+    alert("Đổi mật khẩu thành công");
+
+    password.current = "";
+    password.new = "";
+    password.confirm = "";
+
+  } catch (err) {
+    console.error(err.response?.data);
+    alert("Đổi mật khẩu thất bại");
+  }
+};
+
+/* HANDLE SUBMIT */
+const handleSubmit = () => {
+  if (activeTab.value === "profile") {
+    update();
+  } else {
+    changePassword();
+  }
+};
+
+/* LOGOUT (giữ nguyên) */
+const logout = async () => {
+  await store.logout();
+  router.replace("/login");
+};
+</script>
+
+<style scoped>
+.profile-page {
+  background: #f4f6f9;
+  padding: 20px;
+}
+
+/* card */
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  color: #000;
+  background: #fff;
+}
+
+.tab.active {
+  border-bottom: 3px solid #3c8dbc;
+  font-weight: 700;
+}
+
+/* header */
+.box-header {
+  padding: 10px 15px;
+  border-bottom: 1px solid #eee;
+}
+
+/* button */
+.btn-save {
+  background: #f4f4f4;
+  border: 1px solid #ccc;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+/* form */
+.box-body {
+  padding: 15px;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 15px;
+}
+
+/* full width */
+.full {
+  grid-column: span 2;
+}
+
+/* input */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 400;
+  margin-bottom: 5px;
+  color: #000;
+}
+
+.form-control {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #000;
+  background: #fff;
+}
+.btn-save {
+  background: #3c8dbc;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+/* hover nổi lên */
+.btn-save:hover {
+  background: #367fa9;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transform: translateY(-1px);
+}
+
+/* click */
+.btn-save:active {
+  transform: scale(0.96);
+}
+</style>npm run 

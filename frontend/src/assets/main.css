@@ -1,0 +1,26 @@
+@import './base.css';
+
+/* 🔥 FIX FULL MÀN */
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ❌ BỎ hết giới hạn của Vite */
+#app {
+  max-width: none;
+  width: 100%;
+}
+
+/* ❌ XÓA luôn đoạn này nếu có */
+@media (min-width: 1024px) {
+  body {
+    display: block; /* không dùng flex nữa */
+  }
+
+  #app {
+    display: block; /* bỏ grid chia đôi */
+    padding: 0;
+  }
+}
