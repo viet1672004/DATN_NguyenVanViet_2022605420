@@ -13,4 +13,6 @@ Route::prefix('payments')->group(function () {
 
     // VNPAY
     Route::post('/vnpay/create', [PaymentController::class, 'createVnpay']);
+
+    Route::get('/{id}/invoice', [PaymentController::class, 'exportInvoice']);
 });

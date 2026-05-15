@@ -77,7 +77,9 @@ import { reactive, ref, onMounted } from "vue";
 import { useAuthStore } from "@/views/modules/auths/provider/store";
 import { useRouter } from "vue-router";
 import profileApi from "@/views/modules/profiles/provider/api";
+import { useToast } from "vue-toastification";
 
+const toast = useToast();
 const store = useAuthStore();
 const router = useRouter();
 
@@ -116,7 +118,7 @@ const update = async () => {
     const res = await profileApi.me(); 
     store.setUser(res.data);
 
-    alert("Cập nhật thành công");
+    toast.success("Cập nhật thành công");
   } catch (err) {
     console.error(err.response?.data);
   }
@@ -125,18 +127,18 @@ const update = async () => {
 /* CHANGE PASSWORD */
 const changePassword = async () => {
   if (!password.current || !password.new || !password.confirm) {
-    alert("Vui lòng nhập đầy đủ thông tin");
+    toast.error("Vui lòng nhập đầy đủ thông tin");
     return;
   }
 
   if (password.new !== password.confirm) {
-    alert("Mật khẩu không khớp");
+    toast.error("Mật khẩu không khớp");
     return;
   }
 
   try {
     await profileApi.changePassword(password);
-    alert("Đổi mật khẩu thành công");
+    toast.success("Đổi mật khẩu thành công");
 
     password.current = "";
     password.new = "";
@@ -144,7 +146,7 @@ const changePassword = async () => {
 
   } catch (err) {
     console.error(err.response?.data);
-    alert("Đổi mật khẩu thất bại");
+    toast.error("Đổi mật khẩu thất bại");
   }
 };
 

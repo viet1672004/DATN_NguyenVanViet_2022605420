@@ -17,25 +17,78 @@ class DashboardRepository
     |--------------------------------------------------------------------------
     */
 
+    private function filterByDate(
+        $query,
+        $column,
+        $filters = []
+    ) {
+
+        if (!empty($filters['from_date'])) {
+
+            $query->whereDate(
+                $column,
+                '>=',
+                $filters['from_date']
+            );
+        }
+
+        if (!empty($filters['to_date'])) {
+
+            $query->whereDate(
+                $column,
+                '<=',
+                $filters['to_date']
+            );
+        }
+
+        return $query;
+    }
+
     public function totalUsers()
     {
         return User::count();
     }
 
-    public function totalBookings()
+    public function totalBookings($filters = [])
     {
-        return Booking::count();
+        $query = Booking::query();
+
+        $this->filterByDate(
+            $query,
+            'BookingDateTime',
+            $filters
+        );
+
+        return $query->count();
     }
 
-    public function totalPayments()
+    public function totalPayments($filters = [])
     {
-        return Payment::count();
+        $query = Payment::query();
+
+        $this->filterByDate(
+            $query,
+            'PaymentDate',
+            $filters
+        );
+
+        return $query->count();
     }
 
-    public function totalRevenue()
+    public function totalRevenue($filters = [])
     {
-        return Payment::where('PaymentStatus', 'PAID')
-            ->sum('Amount');
+        $query = Payment::where(
+            'PaymentStatus',
+            'PAID'
+        );
+
+        $this->filterByDate(
+            $query,
+            'PaymentDate',
+            $filters
+        );
+
+        return $query->sum('Amount');
     }
 
     public function totalParks()
@@ -54,19 +107,24 @@ class DashboardRepository
     |--------------------------------------------------------------------------
     */
 
-    public function revenueChart()
+    public function revenueChart($filters = [])
     {
-        return Payment::selectRaw("
+        $query = Payment::selectRaw("
                 CAST(PaymentDate AS DATE) as date,
                 SUM(CAST(Amount AS FLOAT)) as revenue
             ")
-            ->where('PaymentStatus', 'PAID')
+            ->where('PaymentStatus', 'PAID');
+
+        $this->filterByDate(
+            $query,
+            'PaymentDate',
+            $filters
+        );
+
+        return $query
             ->groupByRaw('CAST(PaymentDate AS DATE)')
-            ->orderByDesc('date')
-            ->take(7)
-            ->get()
-            ->reverse()
-            ->values();
+            ->orderBy('date')
+            ->get();
     }
 
     /*
@@ -122,14 +180,21 @@ class DashboardRepository
     |--------------------------------------------------------------------------
     */
 
-    public function latestBookings()
+    public function latestBookings($filters = [])
     {
-        return Booking::with([
+        $query = Booking::with([
             'user:ID,Name',
             'park:ID,ParkName'
-                ])
+        ]);
+
+        $this->filterByDate(
+            $query,
+            'BookingDateTime',
+            $filters
+        );
+
+        return $query
             ->orderByDesc('BookingDateTime')
-            ->take(5)
             ->get();
     }
 
@@ -139,11 +204,19 @@ class DashboardRepository
     |--------------------------------------------------------------------------
     */
 
-    public function latestPayments()
+    public function latestPayments($filters = [])
     {
-        return Payment::with([
-                'booking:ID,BookingCode,TotalPrice'
-            ])
+        $query = Payment::with([
+            'booking:ID,BookingCode,TotalPrice'
+        ]);
+
+        $this->filterByDate(
+            $query,
+            'PaymentDate',
+            $filters
+        );
+
+        return $query
             ->orderByDesc('PaymentDate')
             ->take(5)
             ->get();
@@ -155,16 +228,24 @@ class DashboardRepository
     |--------------------------------------------------------------------------
     */
 
-    public function bookingStatus()
+    public function bookingStatus($filters = [])
     {
-        return Booking::selectRaw("
+        $query = Booking::selectRaw("
                 CASE
                     WHEN Status = 1 THEN 'SUCCESS'
                     WHEN Status = 2 THEN 'CANCEL'
                     ELSE 'PENDING'
                 END as status,
                 CAST(COUNT(*) AS INT) as total
-            ")
+            ");
+
+        $this->filterByDate(
+            $query,
+            'BookingDateTime',
+            $filters
+        );
+
+        return $query
             ->groupBy('Status')
             ->get();
     }
@@ -175,12 +256,20 @@ class DashboardRepository
     |--------------------------------------------------------------------------
     */
 
-    public function paymentStatus()
+    public function paymentStatus($filters = [])
     {
-        return Payment::selectRaw("
+        $query = Payment::selectRaw("
                 PaymentStatus as status,
                 CAST(COUNT(*) AS INT) as total
-            ")
+            ");
+
+        $this->filterByDate(
+            $query,
+            'PaymentDate',
+            $filters
+        );
+
+        return $query
             ->groupBy('PaymentStatus')
             ->get();
     }

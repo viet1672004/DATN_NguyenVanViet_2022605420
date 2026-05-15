@@ -30,8 +30,21 @@ class User extends Authenticatable
         'Password'
     ];
 
+    // Status: 1 = active, 0 = blocked
+    public function getIsBlockedAttribute()
+    {
+        return $this->Status == 0 ? 1 : 0;
+    }
+
+    protected $appends = ['IsBlocked'];
+
     public function role()
     {
         return $this->belongsTo(Role::class, 'RoleID');
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'UserID');
     }
 }

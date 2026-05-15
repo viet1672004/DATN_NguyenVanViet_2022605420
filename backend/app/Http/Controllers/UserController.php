@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\UserService;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Requests\User\ChangePasswordRequest;
-use App\Services\UserService;
+use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
@@ -18,9 +19,11 @@ class UserController extends Controller
     // =====================
     // GET ME
     // =====================
-    public function me()
+    public function me(Request $request)
     {
-        return response()->json(auth()->user());
+        return response()->json(
+            $request->user()->load('role')
+        );
     }
 
     // =====================
@@ -30,10 +33,14 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        $this->service->updateProfile($user, $request->validated());
+        $updated = $this->service->updateProfile(
+            $user,
+            $request->validated()
+        );
 
         return response()->json([
-            'message' => 'Cập nhật thành công'
+            'message' => 'Cập nhật thành công',
+            'user' => $updated
         ]);
     }
 
@@ -44,10 +51,20 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        $this->service->changePassword($user, $request->validated());
+        try {
+            $this->service->changePassword(
+                $user,
+                $request->validated()
+            );
 
-        return response()->json([
-            'message' => 'Đổi mật khẩu thành công'
-        ]);
+            return response()->json([
+                'message' => 'Đổi mật khẩu thành công'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 422);
+        }
     }
 }

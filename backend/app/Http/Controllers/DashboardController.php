@@ -17,23 +17,32 @@ class DashboardController extends Controller
     // ALL DASHBOARD
     public function index(IndexRequest $request)
     {
+        $filters = [
+
+            'from_date' => $request->from_date,
+
+            'to_date' => $request->to_date,
+
+        ];
+
         return response()->json([
 
-            'summary' => $this->service->summary(),
+            'summary' => $this->service->summary($filters),
 
-            'revenue_chart' => $this->service->revenueChart(),
+            'revenue_chart' => $this->service->revenueChart($filters),
 
-            'top_tickets' => $this->service->topTickets(),
+            'top_tickets' => $this->service->topTickets($filters),
 
-            'top_parks' => $this->service->topParks(),
+            'top_parks' => $this->service->topParks($filters),
 
-            'latest_bookings' => $this->service->latestBookings(),
+            'latest_bookings' => $this->service->latestBookings($filters),
 
-            'latest_payments' => $this->service->latestPayments(),
+            'latest_payments' => $this->service->latestPayments($filters),
 
-            'booking_status' => $this->service->bookingStatus(),
+            'booking_status' => $this->service->bookingStatus($filters),
 
-            'payment_status' => $this->service->paymentStatus(),
+            'payment_status' => $this->service->paymentStatus($filters),
+
         ]);
     }
 
@@ -73,7 +82,15 @@ class DashboardController extends Controller
     public function latestBookings(IndexRequest $request)
     {
         return response()->json(
-            $this->service->latestBookings()
+
+            $this->service->latestBookings(
+
+                $request->from_date,
+
+                $request->to_date
+
+            )
+
         );
     }
 

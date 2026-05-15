@@ -116,7 +116,9 @@ import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTicketStore } from "../provider/store";
 import parkApi from "../../parks/provider/api"; 
+import { useToast } from "vue-toastification";
 
+const toast = useToast();
 const store = useTicketStore();
 const route = useRoute();
 const router = useRouter();
@@ -198,31 +200,30 @@ const loadDetail = async () => {
 const handleSubmit = async () => {
   // 🔥 VALIDATE CHUNG
   if (!form.value.TicketName?.trim()) {
-    alert("Vui lòng nhập tên vé");
+    toast.error("Vui lòng nhập tên vé.");
     return;
   }
 
   if (!form.value.Price) {
-    alert("Vui lòng nhập giá");
+    toast.error("Vui lòng nhập giá.");
     return;
   }
 
   if (!form.value.ParkID) {
-    alert("Vui lòng chọn khu vui chơi");
+    toast.error("Vui lòng chọn khu vui chơi.");
     return;
   }
 
-  // 🔥 VALIDATE THEO TYPE
   if (form.value.TicketType === "date") {
     if (!form.value.NumberOfDays || form.value.NumberOfDays <= 0) {
-      alert("Vui lòng nhập số ngày hợp lệ");
+      toast.error("Vui lòng nhập số ngày hợp lệ.");
       return;
     }
   }
 
   if (form.value.TicketType === "combo") {
     if (!form.value.ComboInfo?.trim()) {
-      alert("Vui lòng nhập thông tin combo");
+      toast.error("Vui lòng nhập thông tin combo.");
       return;
     }
   }
@@ -240,9 +241,13 @@ const handleSubmit = async () => {
 
   try {
     await store.update(route.params.id, payload);
+    toast.success("Thao tác thành công.");
     router.push("/tickets");
   } catch (e) {
-    alert(e);
+    toast.error(
+        e?.response?.data?.message ||
+        "Thao tác thất bại."
+    );
   }
 };
 

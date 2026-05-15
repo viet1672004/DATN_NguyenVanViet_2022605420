@@ -45,7 +45,7 @@
             <th width="220">Khu vui chơi</th>
             <th width="200">Loại</th>
             <th width="150">Trạng thái</th>
-            <th width="150">Action</th>
+            <th width="150">Thao tác</th>
           </tr>
         </thead>
 
@@ -88,20 +88,90 @@
 
             <!-- ACTION -->
             <td>
-              <template v-if="isAdmin">
-                <button class="btn-edit" @click="goEdit(item.ID)">
-                  Sửa
-                </button>
 
-                <button class="btn-delete" @click="handleDelete(item.ID)">
-                  Xóa
-                </button>
-              </template>
+              <div class="action-group">
+
+                <!-- ADMIN -->
+                <template v-if="isAdmin">
+
+                  <button
+                    class="btn-detail"
+                    @click="goDetail(item.ID)"
+                  >
+                    Chi tiết
+                  </button>
+
+                  <button
+                    class="btn-edit"
+                    @click="goEdit(item.ID)"
+                  >
+                    Sửa
+                  </button>
+
+                  <button
+                    class="btn-delete"
+                    @click="handleDelete(item.ID)"
+                  >
+                    Xóa
+                  </button>
+
+                </template>
+
+                <!-- USER -->
+                <template v-else>
+
+                  <button
+                    class="btn-detail"
+                    @click="goDetail(item.ID)"
+                  >
+                    Chi tiết
+                  </button>
+
+                </template>
+
+              </div>
+
             </td>
 
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- POPUP DELETE -->
+    <div
+      v-if="showDeletePopup"
+      class="popup-overlay"
+    >
+      <div class="popup-box">
+
+        <div class="popup-header">
+          Xác nhận xóa?
+        </div>
+
+        <div class="popup-body">
+          Bạn có chắc chắn muốn xóa vé này không?
+        </div>
+
+        <div class="popup-footer">
+
+          <button
+            class="btn-popup-delete"
+            @click="confirmDelete"
+          >
+            Xóa
+          </button>
+
+          <button
+            class="btn-popup-cancel"
+            @click="closeDeletePopup"
+          >
+            Đóng
+          </button>
+
+        </div>
+
+      </div>
     </div>
 
   </div>
@@ -113,6 +183,7 @@ import { useRouter } from "vue-router";
 import { useTicketStore } from "../provider/store";
 import { useAuthStore } from "@/views/modules/auths/provider/store";
 import { computed } from "vue";
+import { useToast } from "vue-toastification";
 
 const authStore = useAuthStore();
 
@@ -130,11 +201,12 @@ const isCustomer = computed(() => {
 
 const store = useTicketStore();
 const router = useRouter();
-
+const toast = useToast();
 const search = ref("");
 const type = ref("");
-const status = ref(""); // 👈 NEW
-
+const status = ref(""); 
+const showDeletePopup = ref(false);
+const deleteId = ref(null);
 const loadData = () => {
   store.getList({
     search: search.value,
@@ -147,10 +219,32 @@ const goCreate = () => router.push("/tickets/create");
 const goEdit = (id) => router.push(`/tickets/edit/${id}`);
 const goDetail = (id) => router.push(`/tickets/${id}`);
 
-const handleDelete = async (id) => {
-  if (!confirm("Bạn có chắc chắn muốn xóa Vé này không?")) return;
-  await store.delete(id);
-  loadData();
+const handleDelete = (id) => {
+  deleteId.value = id;
+  showDeletePopup.value = true;
+};
+
+const confirmDelete = async () => {
+
+  try {
+
+    await store.delete(deleteId.value);
+
+    toast.success("Xóa vé thành công.");
+
+    showDeletePopup.value = false;
+
+    await loadData();
+
+  } catch (e) {
+
+    toast.error("Xóa vé thất bại.");
+  }
+};
+
+const closeDeletePopup = () => {
+  showDeletePopup.value = false;
+  deleteId.value = null;
 };
 
 const getType = (type) => {
@@ -235,8 +329,11 @@ onMounted(loadData);
 /* TABLE WRAPPER */
 .table-wrapper {
   background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
+  border-radius: 16px;
+  overflow-x: auto;
+
+  padding: 0 12px; /* 👈 thêm padding 2 bên */
+
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
@@ -244,24 +341,31 @@ onMounted(loadData);
 .table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+
+  table-layout: auto; /* 👈 bỏ fixed để tự co giãn đẹp hơn */
 }
 
 /* HEADER */
 .table th {
   background: #f8fafc;
-  padding: 14px;
+  padding: 18px 16px;
+
   font-weight: 600;
   border-bottom: 1px solid #e5e7eb;
+
   color: #333;
   text-align: center;
   vertical-align: middle;
+
+  white-space: nowrap;
 }
 
 /* BODY */
 .table td {
-  padding: 12px;
+  padding: 18px 16px;
+
   border-bottom: 1px solid #f0f0f0;
+
   color: #333;
   text-align: center;
   vertical-align: middle;
@@ -269,7 +373,7 @@ onMounted(loadData);
 
 /* ROW */
 .table tr {
-  height: 70px;
+  height: 78px;
 }
 
 .table tr:hover {
@@ -282,6 +386,8 @@ onMounted(loadData);
   font-weight: 500;
   color: #3c8dbc;
   text-align: left;
+
+  padding-left: 24px !important;
 }
 
 /* BADGE */
@@ -290,12 +396,14 @@ onMounted(loadData);
   justify-content: center;
   align-items: center;
 
-  width: 130px;
-  height: 32px;
+  min-width: 140px;
+  height: 34px;
+
+  padding: 0 14px;
 
   border-radius: 20px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .badge.active {
@@ -308,28 +416,171 @@ onMounted(loadData);
   color: #bb6e16;
 }
 
-/* BUTTON ACTION */
-.btn-edit {
-  padding: 6px 10px;
-  margin-right: 5px;
-  background: #ffc107;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+/* ACTION COLUMN */
+.table td:last-child {
+  text-align: center;
+  white-space: nowrap;
+
+  padding-right: 24px; /* 👈 cách viền phải */
 }
 
+/* ACTION GROUP */
+.action-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
+
+/* BUTTON CHUNG */
+.btn-detail,
+.btn-edit,
 .btn-delete {
   padding: 6px 10px;
-  background: #dc3545;
-  color: white;
+
   border: none;
   border-radius: 6px;
+
   cursor: pointer;
+
+  font-size: 13px;
+  font-weight: 500;
+
+  transition: 0.2s;
+}
+
+/* DETAIL */
+.btn-detail {
+  background: #3c8dbc;
+  color: white;
+}
+
+.btn-detail:hover {
+  background: #367fa9;
+}
+
+/* EDIT */
+.btn-edit {
+  background: #ffc107;
+  color: #000;
+}
+
+.btn-edit:hover {
+  background: #e0a800;
+}
+
+/* DELETE */
+.btn-delete {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #c82333;
 }
 
 /* ACTION COLUMN */
 .table td:last-child {
   text-align: center;
   white-space: nowrap;
+}
+
+/* OVERLAY */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  padding-top: 100px;
+
+  z-index: 9999;
+}
+
+/* BOX */
+.popup-box {
+  width: 340px;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+
+  animation: popupFade .2s ease;
+}
+
+/* HEADER */
+.popup-header {
+  padding: 18px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #444;
+  border-bottom: 1px solid #eee;
+}
+
+/* BODY */
+.popup-body {
+  padding: 22px 20px;
+  color: #444;
+  font-size: 14px;
+}
+
+/* FOOTER */
+.popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding: 14px 20px;
+  border-top: 1px solid #eee;
+}
+
+/* BUTTON DELETE */
+.btn-popup-delete {
+  min-width: 72px;
+  height: 34px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #e74c3c;
+  color: #fff;
+
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* BUTTON CANCEL */
+.btn-popup-cancel {
+  min-width: 72px;
+  height: 34px;
+
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+
+  background: #fff;
+  color: #666;
+
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-popup-cancel:hover {
+  background: #f5f5f5;
+}
+
+@keyframes popupFade {
+  from {
+    transform: scale(.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

@@ -1,19 +1,52 @@
 import { defineStore } from "pinia";
+
 import dashboardApi from "./api";
 
-export const useDashboardStore = defineStore("dashboard", {
+export const useDashboardStore = defineStore(
+  "dashboard",
+
+  {
     state: () => ({
-        dashboard: {}
+
+      dashboard: {},
+
+      loading: false,
+
     }),
 
     actions: {
-        async getDashboard() {
-            try {
-                const res = await dashboardApi.getDashboard();
-                this.dashboard = res.data;
-            } catch (error) {
-                console.log(error);
-            }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Get Dashboard
+      |--------------------------------------------------------------------------
+      */
+
+      async getDashboard(params = {}) {
+
+        try {
+
+          this.loading = true;
+          this.dashboard = {};
+
+          const res =
+            await dashboardApi.getDashboard(
+              params
+            );
+
+          this.dashboard = res.data;
+
+        } catch (error) {
+
+          console.log(error);
+
+        } finally {
+
+          this.loading = false;
+
         }
+      }
+
     }
-});
+  }
+);

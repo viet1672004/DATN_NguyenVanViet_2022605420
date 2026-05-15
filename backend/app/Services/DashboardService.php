@@ -14,7 +14,7 @@ class DashboardService
     }
 
     // SUMMARY
-    public function summary()
+    public function summary($filters = [])
     {
         return [
             'total_users' => $this->repo->totalUsers(),
@@ -32,21 +32,20 @@ class DashboardService
     }
 
     // CHART
-    public function revenueChart()
+    public function revenueChart($filters = [])
     {
-        return $this->repo->revenueChart();
+        return $this->repo->revenueChart($filters);
     }
 
     // TOP TICKETS
-    public function topTickets()
+    public function topTickets($filters = [])
     {
-        return $this->repo->topTickets();
+        return $this->repo->topTickets($filters);
     }
 
-    // TOP PARKS
-    public function topParks()
+    public function topParks($filters = [])
     {
-        return $this->repo->topParks()
+        return $this->repo->topParks($filters)
             ->map(function ($park) {
 
                 $park->bookings_count =
@@ -56,24 +55,25 @@ class DashboardService
             });
     }
 
-    // TABLE
-    public function latestBookings()
+    public function latestBookings($filters = [])
     {
-        return $this->repo->latestBookings();
+        return $this->repo->latestBookings(
+            $filters
+        );
     }
 
-    public function latestPayments()
+    public function latestPayments($filters = [])
     {
-        return $this->repo->latestPayments();
+        return $this->repo->latestPayments($filters);
     }
 
-    public function bookingStatus()
+    public function bookingStatus($filters = [])
     {
-        return $this->repo->bookingStatus();
+        return $this->repo->bookingStatus($filters);
     }
 
-    public function paymentStatus()
+    public function paymentStatus($filters = [])
     {
-        return $this->repo->paymentStatus();
+        return $this->repo->paymentStatus($filters);
     }
 }

@@ -102,7 +102,9 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useParkStore } from "../provider/store";
+import { useToast } from "vue-toastification";
 
+const toast = useToast();
 onMounted(() => {
   console.log("CREATE PAGE LOADED");
 });
@@ -126,34 +128,33 @@ const fileName = ref("");
 
 // submit
 const handleSubmit = async () => {
-    // 🔥 bắt buộc các field
     if (!form.value.ParkName?.trim()) {
-        alert("Vui lòng nhập tên khu vui chơi");
+        toast.error("Tên khu vui chơi không được để trống.");
         return;
     }
 
     if (!form.value.Location?.trim()) {
-        alert("Vui lòng nhập địa điểm");
+        toast.error("Địa điểm không được để trống.");
         return;
     }
 
     if (!form.value.OpenTime) {
-        alert("Vui lòng chọn giờ mở cửa");
+        toast.error("Giờ mở cửa không được để trống.");
         return;
     }
 
     if (!form.value.CloseTime) {
-        alert("Vui lòng chọn giờ đóng cửa");
+        toast.error("Giờ đóng cửa không được để trống.");
         return;
     }
 
     if (form.value.OpenTime >= form.value.CloseTime) {
-        alert("Giờ đóng cửa phải lớn hơn giờ mở cửa!");
+        toast.error("Giờ đóng cửa phải lớn hơn giờ mở cửa!");
         return;
     }
 
     if (!form.value.Image && !form.value.ImageFile) {
-        alert("Vui lòng chọn ảnh");
+        toast.error('Vui lòng chọn ảnh.');
         return;
     }
 
@@ -169,9 +170,13 @@ const handleSubmit = async () => {
 
     try {
         await store.create(formData);
+        toast.success("Thêm khu vui chơi thành công");
         router.push("/parks");
     } catch (e) {
-        alert(e);
+        toast.error(
+          e?.response?.data?.message ||
+          "Thêm khu vui chơi thất bại"
+      );
     }
 };
 
@@ -181,12 +186,12 @@ const handleFile = (e) => {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-        alert("Chỉ được chọn ảnh");
+        toast.error("Chỉ được chọn ảnh.");
         return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-        alert("Ảnh tối đa 2MB");
+        toast.error("Ảnh tối đa 2MB");
         return;
     }
 

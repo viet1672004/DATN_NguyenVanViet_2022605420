@@ -17,7 +17,7 @@
 <p v-if="isRegister && errors.name" class="error">
   {{ errors.name }}
 </p>
-
+  
 <input v-if="isRegister" v-model="form.phone" placeholder="Số điện thoại" @input="form.phone = form.phone.replace(/[^0-9]/g, '')" />
 <p v-if="isRegister && errors.phone" class="error">
   {{ errors.phone }}
@@ -69,12 +69,13 @@
 
 <script setup>
 import { reactive, ref, watch } from "vue";
+import { useToast } from "vue-toastification";
 import { useAuthStore } from "../provider/store";
 import { useRouter } from "vue-router";
 
 const store = useAuthStore();
 const router = useRouter();
-
+const toast = useToast();
 const isRegister = ref(false);
 const error = ref("");
 
@@ -175,24 +176,85 @@ const validate = () => {
 
 // 🚀 submit
 const submit = async () => {
-  if (!validate()) return;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Validate
+  |--------------------------------------------------------------------------
+  */
+
+  if (!validate()) {
+
+    toast.warning(
+      "Vui lòng kiểm tra dữ liệu"
+    );
+
+    return;
+  }
 
   try {
+
     loading.value = true;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Register
+    |--------------------------------------------------------------------------
+    */
+
     if (isRegister.value) {
+
       await store.register(form);
-    } else {
-      await store.login(form);
+
+      toast.success(
+        "Đăng ký thành công"
+      );
+
     }
 
-    router.replace("/dashboard");
+    /*
+    |--------------------------------------------------------------------------
+    | Login
+    |--------------------------------------------------------------------------
+    */
+
+    else {
+
+      await store.login(form);
+
+      toast.success(
+        "Đăng nhập thành công"
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Redirect
+    |--------------------------------------------------------------------------
+    */
+
+    router.replace("/blogs");
 
   } catch (err) {
-    // backend error
+
+    /*
+    |--------------------------------------------------------------------------
+    | Backend Error
+    |--------------------------------------------------------------------------
+    */
+
     errors.email = err;
+
+    toast.error(
+      typeof err === "string"
+        ? err
+        : "Tài khoản hoặc mật khẩu không đúng"
+    );
+
   } finally {
+
     loading.value = false;
+
   }
 };
 </script>

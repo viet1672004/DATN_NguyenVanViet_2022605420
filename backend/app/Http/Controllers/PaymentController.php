@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\Payment;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PaymentController extends Controller
 {
@@ -135,7 +136,6 @@ class PaymentController extends Controller
 
             if ($booking && $booking->Status == 0) {
 
-                // ❗ tránh tạo trùng
                 $exists = Payment::where('BookingID', $booking->ID)->first();
 
                 if (!$exists) {
@@ -161,4 +161,23 @@ class PaymentController extends Controller
 
         return redirect(env('FRONTEND_URL') . '/pay-fail');
     }
+
+    public function exportInvoice($id)
+    {
+        $payment = Payment::with([
+            'booking.user',
+            'booking.park',
+            'booking.details.ticket'
+        ])->findOrFail($id);
+
+        $pdf = Pdf::loadView(
+            'invoice.payment',
+            compact('payment')
+        );
+
+        return $pdf->download(
+            'hoa-don-' . $payment->ID . '.pdf'
+        );
+    }
+
 }

@@ -303,13 +303,13 @@ class BookingService
         switch ($status) {
             case 0:
                 return [
-                    'text' => 'Chờ Thanh Toán',
+                    'text' => 'Chờ thanh toán',
                     'icon' => '🟡',
                     'color' => 'warning'
                 ];
             case 1:
                 return [
-                    'text' => 'Đã Thanh Toán',
+                    'text' => 'Đã thanh toán',
                     'icon' => '🟢',
                     'color' => 'success'
                 ];

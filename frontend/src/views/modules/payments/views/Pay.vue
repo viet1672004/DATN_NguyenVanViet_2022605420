@@ -126,7 +126,9 @@ import bookingApi from "@/views/modules/bookings/provider/api"
 import momoLogo from "@/assets/momo.png"
 import vnpayLogo from "@/assets/vnpay.png"
 import chuyenkhoan from "@/assets/ck.jpg"
+import { useToast } from "vue-toastification";
 
+const toast = useToast();
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
@@ -158,7 +160,7 @@ const qrBank = ref("")
 
 onMounted(async () => {
   if (!bookingId) {
-    alert("Thiếu BookingID")
+    toast.error("Thiếu BookingID.");
     router.push("/bookings")
     return
   }
@@ -185,7 +187,7 @@ const submitVnpay = async () => {
 
     window.location.href = res.data.url
   } catch (e) {
-    alert("Không tạo được link VNPay")
+    toast.error("Không tạo được link VNPay.");
   } finally {
     loading.value = false
   }
@@ -193,23 +195,22 @@ const submitVnpay = async () => {
 
 const submit = async () => {
   if (booking.value.Status == 1 || booking.value.Status === "PAID") {
-    alert("Booking đã thanh toán")
+    toast.warning("Booking đã thanh toán.");
     return
   }
   try {
     loading.value = true
 
-    // 🔥 MOMO / BANK
     await paymentApi.pay({
       BookingID: bookingId,
       PaymentMethod: method.value
     })
 
-    alert("Thanh toán thành công")
+    toast.success("Thanh toán thành công.");
     router.push("/payments")
 
   } catch (e) {
-    alert(e.response?.data?.message || "Thanh toán thất bại")
+    toast.error(e.response?.data?.message || "Thanh toán thất bại.");
   } finally {
     loading.value = false
   }

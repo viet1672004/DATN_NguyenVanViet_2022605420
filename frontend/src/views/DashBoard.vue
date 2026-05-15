@@ -3,7 +3,7 @@
     <!-- HEADER -->
     <div class="dashboard-header">
       <div>
-        <h1>Dashboard</h1>
+        <h1>HỆ THỐNG QUẢN TRỊ FUN TICKET</h1>
         <p>Hệ thống thống kê FunTicket</p>
       </div>
     </div>
@@ -65,20 +65,43 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
 
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
 .dashboard-header h1 {
-  font-size: 36px;
-  font-weight: 700;
-  color: #111827;
   margin: 0;
+
+  font-size: 38px;
+  font-weight: 800;
+
+  background: linear-gradient(
+    90deg,
+    #2563eb,
+    #f59e0b,
+    #2563eb,
+    #f97316
+  );
+
+  background-clip: text;
+  -webkit-background-clip: text;
+
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  letter-spacing: 0.5px;
+
+  line-height: 1.2;
 }
 
 .dashboard-header p {
-  margin-top: 6px;
-  font-size: 15px;
-  color: #6b7280;
+  margin-top: 10px;
+
+  font-size: 16px;
+  font-weight: 500;
+
+  color: #475569;
+
+  letter-spacing: 0.2px;
 }
 
 /* GRID */

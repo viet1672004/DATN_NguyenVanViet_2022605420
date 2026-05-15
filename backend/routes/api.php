@@ -32,6 +32,9 @@ require __DIR__.'/park.php';
 
 require __DIR__.'/ticket.php';
 
+require __DIR__.'/blog.php';
+
+require __DIR__.'/chatbot.php';
 /*
 |--------------------------------------------------------------------------
 | VNPAY RETURN

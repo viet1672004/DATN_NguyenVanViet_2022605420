@@ -26,7 +26,7 @@
         <div class="form-group">
           <label>Khu vui chơi</label>
           <select v-model="form.ParkID">
-            <option value="">-- Chọn khu --</option>
+            <option value="">-- Chọn khu vui chơi--</option>
             <option v-for="p in parks" :key="p.ID" :value="p.ID">
               {{ p.ParkName }}
             </option>
@@ -51,7 +51,7 @@
               <th width="40%">Vé</th>
               <th width="20%">Số lượng</th>
               <th width="25%">Giá</th>
-              <th width="15%">Action</th>
+              <th width="15%">Thao tác</th>
             </tr>
           </thead>
 
@@ -60,8 +60,17 @@
 
               <!-- SELECT -->
               <td>
-                <select v-model="d.TicketID">
-                  <option value="">-- Chọn vé --</option>
+                <select
+                  v-model="d.TicketID"
+                  :disabled="!form.ParkID"
+                >
+                  <option value="">
+                    {{
+                      form.ParkID
+                        ? '-- Chọn vé --'
+                        : '-- Vui lòng chọn khu vui chơi trước --'
+                    }}
+                  </option>
                   <option v-for="t in filteredTickets" :key="t.ID" :value="t.ID">
                     {{ t.TicketName }}
                   </option>
@@ -107,11 +116,13 @@
 <script setup>
 import { reactive, ref, onMounted, computed, watch } from 'vue'
 import api from '../provider/api'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useParkStore } from "../../parks/provider/store";
+import { useToast } from "vue-toastification";
 
+const toast = useToast();
 const router = useRouter()
-
+const route = useRoute()
 const loading = ref(false)
 const tickets = ref([])
 const parkStore = useParkStore()
@@ -147,8 +158,19 @@ const filteredTickets = computed(() => {
   return result
 })
 
-watch(() => form.ParkID, (val) => {
+watch(() => form.ParkID, (val, oldVal) => {
   console.log("PARK SELECTED >>>", val)
+
+  // Không reset lần đầu auto từ query
+  if (!oldVal) return
+
+  // reset lại vé khi đổi khu
+  form.details = [
+    {
+      TicketID: '',
+      Quantity: 1
+    }
+  ]
 })
 
 // 🔥 FORMAT DATETIME CHUẨN BACKEND
@@ -164,17 +186,46 @@ const formatDateTime = (value) => {
 
 onMounted(async () => {
   try {
+
+    // LOAD TICKETS
     const ticketRes = await api.getTickets()
+
     tickets.value = ticketRes?.data ?? []
 
     console.log("TICKETS >>>", tickets.value)
 
+    // LOAD PARKS
     await parkStore.getList()
+
     parks.value = parkStore.items
 
+    if (!form.BookingDateTime) {
+      const now = new Date()
+
+      now.setMinutes(
+        now.getMinutes() - now.getTimezoneOffset()
+      )
+
+      form.BookingDateTime =
+        now.toISOString().slice(0, 16)
+    }
+
+    const parkId = route.query.park_id
+
+    console.log("PARK ID FROM URL >>>", parkId)
+
+    if (parkId) {
+
+      form.ParkID = parkId
+
+    }
+
   } catch (e) {
+
     console.error(e)
-    alert("Không load được dữ liệu")
+
+    toast.error("Không load được dữ liệu.")
+
   }
 })
 
@@ -199,20 +250,28 @@ const formatPrice = (price) => {
 const submit = async () => {
   if (loading.value) return
 
-  if (!form.ParkID) return alert("Chọn khu vui chơi")
-  if (!form.BookingDateTime) return alert("Chọn thời gian")
+  if (!form.ParkID) {
+    return toast.error("Vui lòng chọn khu vui chơi")
+  }
+
+  if (!form.BookingDateTime) {
+    return toast.error("Vui lòng chọn thời gian")
+  }
 
   if (!form.details.length) {
-    return alert("Phải có ít nhất 1 vé")
+    return toast.error("Phải có ít nhất 1 vé")
   }
 
   for (const d of form.details) {
-    if (!d.TicketID) return alert("Chưa chọn vé")
+
+    if (!d.TicketID) {
+      return toast.error("Chưa chọn vé")
+    }
 
     d.Quantity = Number(d.Quantity)
 
     if (isNaN(d.Quantity) || d.Quantity <= 0) {
-      return alert("Quantity phải > 0")
+      return toast.error("Số lượng vé phải lớn hơn 0")
     }
   }
 
@@ -233,12 +292,13 @@ const submit = async () => {
 
     await api.create(payload)
 
-    alert("Tạo booking thành công")
+    toast.success("Tạo booking thành công.")
+
     router.push("/bookings")
 
   } catch (err) {
     console.error(err)
-    alert("Có lỗi xảy ra")
+    toast.error("Có lỗi xảy ra.")
   } finally {
     loading.value = false
   }

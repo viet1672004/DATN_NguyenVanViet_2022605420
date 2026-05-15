@@ -68,7 +68,7 @@
               <th width="40%">Vé</th>
               <th width="20%">Số lượng</th>
               <th width="25%">Giá</th>
-              <th width="15%">Action</th>
+              <th width="15%">Thao tác</th>
             </tr>
           </thead>
 
@@ -130,7 +130,9 @@ import { reactive, onMounted, ref, computed } from "vue";
 import api from "../provider/api";
 import { useRoute, useRouter } from "vue-router";
 import { useParkStore } from "../../parks/provider/store";
+import { useToast } from "vue-toastification";
 
+const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 
@@ -240,7 +242,7 @@ onMounted(async () => {
 
   } catch (e) {
     console.error(e);
-    alert("Lỗi load dữ liệu");
+    toast.error("Lỗi load dữ liệu.");
   }
 });
 
@@ -289,13 +291,12 @@ const submit = async () => {
     console.log("UPDATE PAYLOAD >>>", payload);
 
     await api.update(route.params.id, payload);
-
-    alert("Cập nhật thành công");
+    toast.success("Cập nhật thành công.");
     router.push("/bookings");
 
   } catch (e) {
     console.error(e);
-    alert("Cập nhật thất bại");
+    toast.error("Cập nhật thất bại.");
   } finally {
     loading.value = false;
   }

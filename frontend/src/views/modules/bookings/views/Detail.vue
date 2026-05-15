@@ -109,6 +109,42 @@
       </table>
     </div>
 
+    <!-- POPUP CANCEL -->
+    <div
+      v-if="showCancelPopup"
+      class="popup-overlay"
+    >
+      <div class="popup-box">
+
+        <div class="popup-header">
+          Xác nhận hủy?
+        </div>
+
+        <div class="popup-body">
+          Bạn có chắc chắn muốn hủy booking này không?
+        </div>
+
+        <div class="popup-footer">
+
+          <button
+            class="btn-popup-delete"
+            @click="confirmCancel"
+          >
+            Hủy 
+          </button>
+
+          <button
+            class="btn-popup-cancel"
+            @click="closeCancelPopup"
+          >
+            Đóng
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -117,12 +153,15 @@ import { ref, onMounted, computed } from 'vue'
 import api from '../provider/api'
 import { useRoute, useRouter } from 'vue-router'
 import paymentApi from "../../payments/provider/api";
+import { useToast } from "vue-toastification";
 
+const toast = useToast();
 const route = useRoute()
 const router = useRouter()
 
 const data = ref({ details: [] })
-
+const showCancelPopup = ref(false)
+const cancelId = ref(null)
 const formatDateTime = (date) => {
   if (!date) return ""
 
@@ -145,21 +184,37 @@ const pay = (id) => {
   router.push(`/payments/pay?bookingId=${id}`)
 }
 
-const cancel = async (id) => {
+const cancel = (id) => {
+
   if (Number(data.value.Status) !== 0) return
 
-  if (!confirm("Hủy booking này?")) return
+  cancelId.value = id
+  showCancelPopup.value = true
+}
+
+const confirmCancel = async () => {
 
   try {
-    await api.cancel(id)
-    alert("Hủy thành công")
 
-    const res = await api.getDetail(id)
+    await api.cancel(cancelId.value)
+
+    toast.success("Hủy thành công.")
+
+    showCancelPopup.value = false
+
+    const res = await api.getDetail(cancelId.value)
+
     data.value = res.data
 
   } catch (e) {
-    alert("Hủy thất bại")
+
+    toast.error("Hủy thất bại.")
   }
+}
+
+const closeCancelPopup = () => {
+  showCancelPopup.value = false
+  cancelId.value = null
 }
 
 const getTypeText = (type) => {
@@ -483,5 +538,104 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* OVERLAY */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  padding-top: 100px;
+
+  z-index: 9999;
+}
+
+/* BOX */
+.popup-box {
+  width: 340px;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+
+  animation: popupFade .2s ease;
+}
+
+/* HEADER */
+.popup-header {
+  padding: 18px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #444;
+  border-bottom: 1px solid #eee;
+}
+
+/* BODY */
+.popup-body {
+  padding: 22px 20px;
+  color: #444;
+  font-size: 14px;
+}
+
+/* FOOTER */
+.popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding: 14px 20px;
+  border-top: 1px solid #eee;
+}
+
+/* BUTTON DELETE */
+.btn-popup-delete {
+  min-width: 72px;
+  height: 34px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #e74c3c;
+  color: #fff;
+
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* BUTTON CANCEL */
+.btn-popup-cancel {
+  min-width: 72px;
+  height: 34px;
+
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+
+  background: #fff;
+  color: #666;
+
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-popup-cancel:hover {
+  background: #f5f5f5;
+}
+
+@keyframes popupFade {
+  from {
+    transform: scale(.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

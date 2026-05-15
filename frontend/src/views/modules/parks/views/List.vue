@@ -34,7 +34,7 @@
             <th width="200">Địa điểm</th>
             <th width="180">Giờ hoạt động</th>
             <th width="150">Trạng thái</th>
-            <th width="150">Action</th>
+            <th width="150">Thao tác</th>
           </tr>
         </thead>
 
@@ -83,26 +83,89 @@
 
             <!-- ACTION -->
             <td>
-              <template v-if="isAdmin">
-                <button
-                  class="btn-edit"
-                  @click="goEdit(item)"
-                >
-                  Sửa
-                </button>
 
-                <button
-                  class="btn-delete"
-                  @click="handleDelete(item.ID)"
-                >
-                  Xóa
-                </button>
-              </template>
+              <div class="action-group">
+
+                <template v-if="isAdmin">
+
+                  <button
+                    class="btn-detail"
+                    @click="goDetail(item.ID)"
+                  >
+                    Chi tiết
+                  </button>
+
+                  <button
+                    class="btn-edit"
+                    @click="goEdit(item)"
+                  >
+                    Sửa
+                  </button>
+
+                  <button
+                    class="btn-delete"
+                    @click="handleDelete(item.ID)"
+                  >
+                    Xóa
+                  </button>
+
+                </template>
+
+                <!-- USER -->
+                <template v-else>
+
+                  <button
+                    class="btn-detail"
+                    @click="goDetail(item.ID)"
+                  >
+                    Chi tiết
+                  </button>
+
+                </template>
+
+              </div>
+
             </td>
 
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- POPUP DELETE -->
+    <div
+      v-if="showDeletePopup"
+      class="popup-overlay"
+    >
+      <div class="popup-box">
+
+        <div class="popup-header">
+          Xác nhận xóa?
+        </div>
+
+        <div class="popup-body">
+          Bạn có chắc chắn muốn xóa khu vui chơi này không?
+        </div>
+
+        <div class="popup-footer">
+
+          <button
+            class="btn-popup-delete"
+            @click="confirmDelete"
+          >
+            Xóa
+          </button>
+
+          <button
+            class="btn-popup-cancel"
+            @click="closeDeletePopup"
+          >
+            Đóng
+          </button>
+
+        </div>
+
+      </div>
     </div>
   </div>
 </template>
@@ -113,8 +176,10 @@ import { useRouter } from "vue-router";
 import { useParkStore } from "../provider/store";
 import { useAuthStore } from "@/views/modules/auths/provider/store";
 import { computed } from "vue";
+import { useToast } from "vue-toastification";
 
 const router = useRouter();
+const toast = useToast();
 const authStore = useAuthStore();
 
 const isAdmin = computed(() => {
@@ -132,6 +197,8 @@ const store = useParkStore();
 
 const search = ref("");
 const status = ref("1");
+const showDeletePopup = ref(false);
+const deleteId = ref(null);
 const getImage = (path) => {
   if (!path) return "";
 
@@ -165,11 +232,32 @@ const goDetail = (id) => {
     router.push(`/parks/${id}`);
 };
 
-const handleDelete = async (id) => {
-    if (!confirm("Bạn có chắc muốn xóa?")) return;
+const handleDelete = (id) => {
+  deleteId.value = id;
+  showDeletePopup.value = true;
+};
 
-    await store.delete(id);
-    loadData();
+const confirmDelete = async () => {
+
+  try {
+
+    await store.delete(deleteId.value);
+
+    toast.success("Xóa khu vui chơi thành công.");
+
+    showDeletePopup.value = false;
+
+    await loadData();
+
+  } catch (e) {
+
+    toast.error("Xóa khu vui chơi thất bại.");
+  }
+};
+
+const closeDeletePopup = () => {
+  showDeletePopup.value = false;
+  deleteId.value = null;
 };
 
 onMounted(() => {
@@ -240,8 +328,11 @@ onMounted(() => {
 /* TABLE WRAPPER */
 .table-wrapper {
   background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
+  border-radius: 16px;
+
+  overflow-x: auto;
+  padding: 0 12px;
+
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
@@ -249,27 +340,35 @@ onMounted(() => {
 .table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+
+  table-layout: auto;
 }
 
 /* HEADER TABLE */
 .table th {
   background: #f8fafc;
-  padding: 14px;
+
+  padding: 18px 16px;
+
   font-weight: 600;
   border-bottom: 1px solid #e5e7eb;
+
   color: #333;
   text-align: center;
   vertical-align: middle;
+
+  white-space: nowrap;
 }
 
 /* BODY */
 .table td {
-  padding: 12px;
+  padding: 18px 16px;
+
   border-bottom: 1px solid #f0f0f0;
+
   color: #333;
   text-align: center;
-  vertical-align: middle; 
+  vertical-align: middle;
 }
 
 /* HOVER */
@@ -277,23 +376,33 @@ onMounted(() => {
   background: #f9fbfd;
 }
 
+/* FIX ROW HEIGHT */
+.table tr {
+  height: 78px;
+}
+
 /* IMAGE */
 .thumb {
-  width: 70px;
-  height: 50px;
-  object-fit: cover;
-  border-radius: 6px;
+  width: 78px;
+  height: 56px;
 
-  display: block;       
-  margin: 0 auto;       
+  object-fit: cover;
+  border-radius: 8px;
+
+  display: block;
+  margin: 0 auto;
 }
 
 /* NAME */
 .name {
   cursor: pointer;
+
   font-weight: 500;
   color: #3c8dbc;
+
   text-align: left;
+
+  padding-left: 24px !important;
 }
 
 /* BADGE */
@@ -302,12 +411,15 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
 
-  width: 130px;  
-  height: 32px;
+  min-width: 140px;
+  height: 34px;
+
+  padding: 0 14px;
 
   border-radius: 20px;
+
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .badge.active {
@@ -320,23 +432,68 @@ onMounted(() => {
   color: #bb6e16;
 }
 
-/* BUTTON */
-.btn-edit {
-  padding: 6px 10px;
-  margin-right: 5px;
-  background: #ffc107;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+/* ACTION COLUMN */
+.table td:last-child {
+  text-align: center;
+  white-space: nowrap;
+
+  padding-right: 24px;
 }
 
+/* ACTION GROUP */
+.action-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 5px;
+}
+
+/* BUTTON CHUNG */
+.btn-detail,
+.btn-edit,
 .btn-delete {
   padding: 6px 10px;
-  background: #dc3545;
-  color: white;
+
   border: none;
   border-radius: 6px;
+
   cursor: pointer;
+
+  font-size: 13px;
+  font-weight: 500;
+
+  transition: 0.2s;
+}
+
+/* DETAIL */
+.btn-detail {
+  background: #3c8dbc;
+  color: white;
+}
+
+.btn-detail:hover {
+  background: #367fa9;
+}
+
+/* EDIT */
+.btn-edit {
+  background: #ffc107;
+  color: #000;
+}
+
+.btn-edit:hover {
+  background: #e0a800;
+}
+
+/* DELETE */
+.btn-delete {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #c82333;
 }
 
 /* ACTION CENTER */
@@ -348,5 +505,104 @@ onMounted(() => {
 /* FIX ROW HEIGHT ĐỀU */
 .table tr {
   height: 70px;
+}
+
+/* OVERLAY */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  padding-top: 100px;
+
+  z-index: 9999;
+}
+
+/* BOX */
+.popup-box {
+  width: 340px;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+
+  animation: popupFade .2s ease;
+}
+
+/* HEADER */
+.popup-header {
+  padding: 18px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #444;
+  border-bottom: 1px solid #eee;
+}
+
+/* BODY */
+.popup-body {
+  padding: 22px 20px;
+  color: #444;
+  font-size: 14px;
+}
+
+/* FOOTER */
+.popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding: 14px 20px;
+  border-top: 1px solid #eee;
+}
+
+/* BUTTON DELETE */
+.btn-popup-delete {
+  min-width: 72px;
+  height: 34px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #e74c3c;
+  color: #fff;
+
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* BUTTON CANCEL */
+.btn-popup-cancel {
+  min-width: 72px;
+  height: 34px;
+
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+
+  background: #fff;
+  color: #666;
+
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-popup-cancel:hover {
+  background: #f5f5f5;
+}
+
+@keyframes popupFade {
+  from {
+    transform: scale(.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

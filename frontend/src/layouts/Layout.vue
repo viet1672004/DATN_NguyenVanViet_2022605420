@@ -5,11 +5,78 @@
     <aside class="sidebar">
 
       <!-- LOGO -->
-      <router-link to="/dashboard" class="logo">
-        Back Office
+      <router-link to="/blogs" class="logo">
+        Fun Ticket
       </router-link>
 
       <div class="sidebar-menu">
+
+        <!-- BLOG -->
+        <div
+          class="menu-parent"
+          @click="openBlog = !openBlog"
+        >
+          <span>📰 BÀI VIẾT</span>
+          <span>{{ openBlog ? "▾" : "▸" }}</span>
+        </div>
+
+        <div
+          v-show="openBlog"
+          class="submenu"
+        >
+
+        <!-- USER BLOG PAGE -->
+          <router-link
+            v-if="isAdmin"
+            to="/blog-page"
+            class="menu-item"
+          >
+           Quản lý bài viết
+          </router-link>
+
+          <!-- ADMIN -->
+          <router-link
+            to="/blogs"
+            class="menu-item"
+          >
+            Danh sách bài viết
+          </router-link>
+
+          <router-link
+            v-if="isAdmin"
+            to="/blogs/create"
+            class="menu-item"
+          >
+            Thêm bài viết
+          </router-link>
+
+        </div>
+
+        <!-- DASHBOARD -->
+        <div v-if="isAdmin">
+          <div class="menu-parent" @click="openDashboard = !openDashboard">
+            <span>📊 HỆ THỐNG</span>
+            <span>{{ openDashboard ? "▾" : "▸" }}</span>
+          </div>
+
+          <div v-show="openDashboard" class="submenu">
+            <router-link to="/dashboard" class="menu-item">
+              Hệ thống quản trị
+            </router-link>
+
+            <router-link to="/dashboard/revenue" class="menu-item">
+              Quản lý doanh thu
+            </router-link>
+
+            <router-link to="/dashboard/bookings" class="menu-item">
+              Quản lý Booking
+            </router-link>
+
+            <router-link to="/dashboard/statistics" class="menu-item">
+              Thống kê hoạt động
+            </router-link>
+          </div>
+        </div>
 
         <!-- PARK -->
         <div 
@@ -105,10 +172,33 @@
           </router-link>
         </div>
 
+        <!-- USERS -->
+        <div
+           v-if="isAdmin"
+          class="menu-parent"
+          @click="openUser = !openUser"
+        >
+          <span>👤 NGƯỜI DÙNG</span>
+          <span>{{ openUser ? "▾" : "▸" }}</span>
+        </div>
+
+        <div
+           v-if="isAdmin"
+          v-show="openUser"
+          class="submenu"
+        >
+          <router-link
+            to="/users"
+            class="menu-item"
+          >
+            Danh sách người dùng
+          </router-link>
+        </div>
+
         <!-- PROFILE -->
-        <router-link to="/profile" class="menu-item">
+        <!-- <router-link to="/profile" class="menu-item">
           Hồ sơ cá nhân
-        </router-link>
+        </router-link> -->
 
       </div>
 
@@ -130,6 +220,8 @@
       </div>
 
     </div>
+    <!-- CHATBOT -->
+    <ChatBox />
   </div>
 </template>
 
@@ -137,14 +229,18 @@
 import { ref, computed } from "vue";
 import { useAuthStore } from "@/views/modules/auths/provider/store";
 import UserDropdown from "@/components/UserDropdown.vue";
+import ChatBox from "../views/modules/chatbots/views/ChatBot.vue";
 
 const store = useAuthStore();
 
 /* mở / đóng menu */
+const openDashboard = ref(true);
+const openBlog = ref(false);
 const openPark = ref(false);
 const openTicket = ref(false);
 const openBooking = ref(false);
 const openPayment = ref(false);
+const openUser = ref(false);
 
 /* role */
 const isAdmin = computed(() => {
@@ -164,8 +260,8 @@ const isCustomer = computed(() => {
 <style scoped>
 .layout {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  background: #ecf0f5;
 }
 
 /* SIDEBAR */

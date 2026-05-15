@@ -15,7 +15,11 @@ class IndexRequest extends FormRequest
     {
         return [
 
-            'range' => 'nullable|in:today,week,month,year'
+            'range' => 'nullable|in:today,week,month,year',
+
+            'from_date' => 'nullable|date',
+
+            'to_date' => 'nullable|date|after_or_equal:from_date',
 
         ];
     }

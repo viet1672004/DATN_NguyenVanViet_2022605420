@@ -73,68 +73,95 @@ onBeforeUnmount(() => {
 <style scoped>
 .user-wrapper {
   position: relative;
+
   display: flex;
   align-items: center;
+
+  z-index: 99999;
 }
 
 /* top user */
 .user-box {
   display: flex;
   align-items: center;
+
   gap: 10px;
 
   padding: 8px 12px;
+
   cursor: pointer;
+
   color: white;
 }
 
 /* dropdown */
 .user-dropdown {
   position: absolute;
-  right: -17px;
-  top: 100%;   /* 👉 bám ngay dưới user-box */
 
-  margin-top: 7px; /* đảm bảo không lệch */
+  right: -17px;
+  top: 100%;
+
+  margin-top: 7px;
 
   width: 260px;
+
   background: white;
 
   border: 1px solid #ddd;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.2);
+
+  border-radius: 10px;
+
+  overflow: hidden;
+
+  z-index: 100000;
 }
 
+/* topbar */
 .topbar > div:last-child {
   display: flex;
   align-items: center;
   justify-content: flex-end;
 }
+
 /* header */
 .user-header {
   background: #3c8dbc;
+
   color: white;
 
   text-align: center;
+
   padding: 20px;
 }
 
 .avatar-large {
   width: 80px;
   height: 80px;
+
   border-radius: 50%;
+
   margin-bottom: 10px;
 }
 
 /* footer */
 .user-footer {
   display: flex;
+
   justify-content: space-between;
+
   padding: 10px;
 }
 
 .user-footer button {
   padding: 5px 10px;
+
   border: 1px solid #ccc;
+
   background: white;
+
   cursor: pointer;
 }
 
@@ -146,6 +173,7 @@ onBeforeUnmount(() => {
 .avatar {
   width: 32px;
   height: 32px;
+
   border-radius: 50%;
 }
 </style>

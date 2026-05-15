@@ -18,7 +18,22 @@ import Register from '@/views/modules/auths/views/Register.vue'
 
 import Layout from '@/layouts/Layout.vue'
 import DashBoard from '@/views/DashBoard.vue'
+import DashboardRevenuePage from '@/views/modules/dashboard/views/DashboardRevenuePage.vue'
+import DashboardBookingsPage from '@/views/modules/dashboard/views/DashboardBookingsPage.vue'
+import DashboardStatisticsPage from '@/views/modules/dashboard/views/DashboardStatisticsPage.vue'
 import Profile from '@/views/modules/profiles/views/Profile.vue'
+
+/*
+|--------------------------------------------------------------------------
+| BLOG
+|--------------------------------------------------------------------------
+*/
+
+import Blogs from '@/views/modules/blogs/views/List.vue'
+import BlogCreate from '@/views/modules/blogs/views/Create.vue'
+import BlogEdit from '@/views/modules/blogs/views/Edit.vue'
+import BlogDetail from '@/views/modules/blogs/views/Detail.vue'
+import BlogPage from '@/views/modules/blogs/views/Blog.vue'
 
 /*
 |--------------------------------------------------------------------------
@@ -64,6 +79,15 @@ import PaymentDetail from '@/views/modules/payments/views/Detail.vue'
 import PaymentPay from '@/views/modules/payments/views/Pay.vue'
 import PaySuccess from '@/views/modules/payments/views/PaySuccess.vue'
 import PayFail from '@/views/modules/payments/views/PayFail.vue'
+
+/*
+|--------------------------------------------------------------------------
+| USER
+|--------------------------------------------------------------------------
+*/
+
+import Users from '@/views/modules/users/views/List.vue'
+import UserDetail from '@/views/modules/users/views/Detail.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -134,9 +158,71 @@ const router = createRouter({
         },
 
         {
+          path: 'dashboard/revenue',
+          name: 'dashboard.revenue',
+          component: DashboardRevenuePage,
+        },
+
+        {
+          path: 'dashboard/bookings',
+          name: 'dashboard.bookings',
+          component: DashboardBookingsPage,
+        },
+
+        {
+          path: 'dashboard/statistics',
+          name: 'dashboard.statistics',
+          component: DashboardStatisticsPage,
+        },
+
+        {
           path: 'profile',
           name: 'profile',
           component: Profile,
+        },
+
+        /*
+        |--------------------------------------------------------------------------
+        | BLOG
+        |--------------------------------------------------------------------------
+        */
+
+        {
+          path: 'blogs',
+          name: 'blogs',
+          component: Blogs,
+        },
+
+        {
+          path: 'blog-page',
+          name: 'blog.page',
+          component: BlogPage,
+        },
+
+        {
+          path: 'blogs/create',
+          name: 'blogs.create',
+          component: BlogCreate,
+
+          meta: {
+            role: 'admin',
+          },
+        },
+
+        {
+          path: 'blogs/edit/:id',
+          name: 'blogs.edit',
+          component: BlogEdit,
+
+          meta: {
+            role: 'admin',
+          },
+        },
+
+        {
+          path: "/blogs/detail/:id",
+          name: 'blogs.detail',
+          component: BlogDetail,
         },
 
         /*
@@ -285,6 +371,26 @@ const router = createRouter({
           path: 'pay-fail',
           name: 'pay.fail',
           component: PayFail,
+        },
+
+        /*
+        |--------------------------------------------------------------------------
+        | USER
+        |--------------------------------------------------------------------------
+        */
+
+        {
+          path: 'users',
+          name: 'users',
+          component: Users,
+          meta: { role: 'admin' },
+        },
+
+        {
+          path: 'users/:id',
+          name: 'users.detail',
+          component: UserDetail,
+          meta: { role: 'admin' },
         },
 
       ],

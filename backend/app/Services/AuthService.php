@@ -35,7 +35,11 @@ class AuthService
                 'ID' => $user->ID,
                 'Name' => $user->Name,
                 'Email' => $user->Email,
-                'Role' => 'customer'
+
+                // 🔥 FIX
+                'role' => [
+                    'RoleName' => 'customer'
+                ]
             ],
 
             'token' => $token
@@ -52,9 +56,8 @@ class AuthService
             return null;
         }
 
-        // 🔥 CHECK STATUS
+        // CHECK STATUS
         if ($user->Status == 0) {
-
             throw new \Exception('Tài khoản đã bị khóa');
         }
 
@@ -66,7 +69,11 @@ class AuthService
                 'ID' => $user->ID,
                 'Name' => $user->Name,
                 'Email' => $user->Email,
-                'Role' => strtolower($user->role->RoleName)
+
+                // 🔥 FIX
+                'role' => [
+                    'RoleName' => strtolower($user->role->RoleName)
+                ]
             ],
 
             'token' => $token

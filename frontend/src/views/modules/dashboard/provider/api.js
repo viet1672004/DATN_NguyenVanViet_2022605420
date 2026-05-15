@@ -1,7 +1,21 @@
 import axios from "@/api/axios";
 
 export default {
-    getDashboard() {
-        return axios.get("/dashboard");
-    }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Get Dashboard
+  |--------------------------------------------------------------------------
+  */
+
+  getDashboard(params = {}) {
+
+    return axios.get(
+      "/dashboard",
+      {
+        params
+      }
+    );
+  }
+
 };

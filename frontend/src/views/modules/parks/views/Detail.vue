@@ -38,7 +38,10 @@
           {{ store.detail.Status ? 'Hoạt động' : 'Ngừng hoạt động' }}
         </span>
 
-        <button class="btn-book">
+        <button
+          class="btn-book"
+          @click="goBooking"
+        >
           Đặt vé ngay
         </button>
 
@@ -75,6 +78,15 @@ watch(
 
 const goBack = () => {
   router.push("/parks");
+};
+
+const goBooking = () => {
+  router.push({
+    path: "/bookings/create",
+    query: {
+      park_id: store.detail.ID
+    }
+  });
 };
 </script>
 
