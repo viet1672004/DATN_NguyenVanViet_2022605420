@@ -120,25 +120,21 @@ const exportPdf = async () => {
 |--------------------------------------------------------------------------
 */
 
-const exportExcel = async () => {
+    const exportExcel = async () => {
 
-  try {
+      try {
 
-    const payments =
-      dashboardStore.dashboard
-        ?.latest_payments || [];
+        const payments =
+          dashboardStore.dashboard
+            ?.latest_payments || [];
 
-    const data = payments.map((item) => ({
+        const data = payments.map((item) => ({
 
       "Mã booking":
         item.booking?.BookingCode || "N/A",
 
       "Phương thức":
         item.PaymentMethod || "N/A",
-
-      "Số tiền":
-        Number(item.Amount || 0)
-          .toLocaleString("vi-VN") + " đ",
 
       "Trạng thái":
         item.PaymentStatus === "PAID"
@@ -155,6 +151,12 @@ const exportExcel = async () => {
               .toLocaleString("vi-VN")
           : "N/A",
 
+      "Số tiền":
+        Number(item.Amount || 0)
+          .toLocaleString("vi-VN") + " đ",
+
+      total_price:
+        Number(item.Amount || 0),
     }));
 
     await exportToExcel(

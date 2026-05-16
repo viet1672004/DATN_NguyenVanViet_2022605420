@@ -1,45 +1,96 @@
 import { defineStore } from "pinia";
+
 import api from "./api";
 
-export const useChatBotStore = defineStore("chatbot", {
-  state: () => ({
-    messages: [],
-    loading: false,
-  }),
+export const useChatBotStore = defineStore(
+  "chatbot",
+  {
+    state: () => ({
+      messages: [],
+      loading: false,
+    }),
 
-  actions: {
-    async sendMessage(text) {
-      try {
+    actions: {
+
+      async sendMessage(text) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | BLOCK SPAM
+        |--------------------------------------------------------------------------
+        */
+
+        if (this.loading) {
+          return;
+        }
+
         this.loading = true;
 
-        // USER MESSAGE
+        /*
+        |--------------------------------------------------------------------------
+        | USER MESSAGE
+        |--------------------------------------------------------------------------
+        */
+
         this.messages.push({
+
           type: "user",
+
           text,
         });
 
-        const res = await api.sendMessage({
-          message: text,
-        });
+        try {
 
-        // AI MESSAGE
-        this.messages.push({
-          type: "bot",
-          text: res.data.reply,
-        });
+          const res = await api.sendMessage({
 
-      } catch (err) {
+            message: text,
+          });
 
-        this.messages.push({
-          type: "bot",
-          text: "AI hiện đang bận.",
-        });
+          /*
+          |--------------------------------------------------------------------------
+          | BOT MESSAGE
+          |--------------------------------------------------------------------------
+          */
 
-        console.error(err);
+          this.messages.push({
 
-      } finally {
-        this.loading = false;
+            type: "bot",
+
+            text:
+              res.data.reply ||
+              "Không có phản hồi.",
+          });
+
+        } catch (err) {
+
+          console.error(err);
+
+          this.messages.push({
+
+            type: "bot",
+
+            text:
+              "Hệ thống AI đang bận.",
+          });
+
+        } finally {
+
+          this.loading = false;
+        }
+      },
+
+      /*
+      |--------------------------------------------------------------------------
+      | RESET CHAT
+      |--------------------------------------------------------------------------
+      */
+
+      resetChat(defaultMessage) {
+
+        this.messages = [
+          defaultMessage,
+        ];
       }
-    },
-  },
-});
+    }
+  }
+);

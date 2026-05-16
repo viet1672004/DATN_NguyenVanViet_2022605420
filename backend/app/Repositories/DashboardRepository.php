@@ -218,7 +218,6 @@ class DashboardRepository
 
         return $query
             ->orderByDesc('PaymentDate')
-            ->take(5)
             ->get();
     }
 

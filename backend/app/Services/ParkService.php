@@ -17,27 +17,45 @@ class ParkService
     {
         $query = $this->repo->query();
 
+        // Tìm theo tên khu vui chơi hoặc địa điểm
         if (!empty($filters['search'])) {
-            $query->where(function ($q) use ($filters) {
-                $q->where('ParkName', 'like', '%' . $filters['search'] . '%')
-                ->orWhere('Location', 'like', '%' . $filters['search'] . '%');
+
+            $search = trim($filters['search']);
+
+            $query->where(function ($q) use ($search) {
+
+                $q->where('ParkName', 'like', '%' . $search . '%')
+                ->orWhere('Location', 'like', '%' . $search . '%');
             });
         }
 
-        
+        // Filter riêng theo địa điểm
         if (!empty($filters['location'])) {
-            $query->where('Location', $filters['location']);
+
+            $location = trim($filters['location']);
+
+            $query->where('Location', 'like', '%' . $location . '%');
         }
 
-        if (!isset($filters['status']) || $filters['status'] === null || $filters['status'] === '') {
+        // Status
+        if (
+            !isset($filters['status']) ||
+            $filters['status'] === null ||
+            $filters['status'] === ''
+        ) {
+
             $query->where('Status', 1);
+
         } else {
+
             $query->where('Status', $filters['status']);
         }
 
         $perPage = $filters['per_page'] ?? 10;
 
-        return $query->orderBy('ID', 'desc')->paginate($perPage);
+        return $query
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
     }
 
     public function getDetail($id)

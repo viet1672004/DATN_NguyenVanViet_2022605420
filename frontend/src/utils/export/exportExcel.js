@@ -29,7 +29,7 @@ export const exportToExcel = (
 
   /*
   |--------------------------------------------------------------------------
-  | Create Empty Worksheet
+  | Create Worksheet
   |--------------------------------------------------------------------------
   */
 
@@ -64,7 +64,23 @@ export const exportToExcel = (
 
   /*
   |--------------------------------------------------------------------------
-  | Add JSON Data
+  | Remove hidden field
+  |--------------------------------------------------------------------------
+  */
+
+  const exportData =
+    data.map((item) => {
+
+      const clone = { ...item };
+
+      delete clone.total_price;
+
+      return clone;
+    });
+
+  /*
+  |--------------------------------------------------------------------------
+  | Add Table Data
   |--------------------------------------------------------------------------
   */
 
@@ -72,7 +88,7 @@ export const exportToExcel = (
 
     worksheet,
 
-    data,
+    exportData,
 
     {
       origin: "A5",
@@ -88,11 +104,11 @@ export const exportToExcel = (
   */
 
   const totalCols =
-    Object.keys(data[0] || {}).length;
+    Object.keys(exportData[0] || {}).length;
 
   /*
   |--------------------------------------------------------------------------
-  | Merge Cells
+  | Merge Header
   |--------------------------------------------------------------------------
   */
 
@@ -126,7 +142,7 @@ export const exportToExcel = (
 
   /*
   |--------------------------------------------------------------------------
-  | System Name Style
+  | Header Styles
   |--------------------------------------------------------------------------
   */
 
@@ -163,12 +179,6 @@ export const exportToExcel = (
 
   };
 
-  /*
-  |--------------------------------------------------------------------------
-  | Title Style
-  |--------------------------------------------------------------------------
-  */
-
   worksheet["A2"].s = {
 
     font: {
@@ -193,12 +203,6 @@ export const exportToExcel = (
     },
 
   };
-
-  /*
-  |--------------------------------------------------------------------------
-  | Subtitle Style
-  |--------------------------------------------------------------------------
-  */
 
   worksheet["A3"].s = {
 
@@ -227,12 +231,12 @@ export const exportToExcel = (
 
   /*
   |--------------------------------------------------------------------------
-  | Header Style
+  | Table Header Style
   |--------------------------------------------------------------------------
   */
 
   const headers =
-    Object.keys(data[0] || {});
+    Object.keys(exportData[0] || {});
 
   headers.forEach((_, index) => {
 
@@ -256,6 +260,8 @@ export const exportToExcel = (
           color: {
             rgb: "FFFFFF",
           },
+
+          sz: 12,
 
           name: "Arial",
         },
@@ -325,8 +331,11 @@ export const exportToExcel = (
 
       const cell =
         XLSX.utils.encode_cell({
+
           r: row,
+
           c: col,
+
         });
 
       if (worksheet[cell]) {
@@ -374,6 +383,187 @@ export const exportToExcel = (
 
   /*
   |--------------------------------------------------------------------------
+  | TOTAL ROW
+  |--------------------------------------------------------------------------
+  */
+
+  const totalAmount =
+    data.reduce(
+
+      (sum, item) =>
+
+        sum + Number(item.total_price || 0),
+
+      0
+
+    );
+
+  /*
+  |--------------------------------------------------------------------------
+  | Current Month
+  |--------------------------------------------------------------------------
+  */
+
+  const currentMonth =
+    new Date().getMonth() + 1;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Create Total Row
+  |--------------------------------------------------------------------------
+  */
+
+  const totalRow =
+    new Array(totalCols).fill("");
+
+  totalRow[0] =
+    `TỔNG DOANH THU THÁNG ${currentMonth}`;
+
+  totalRow[totalCols - 1] =
+    totalAmount.toLocaleString("vi-VN") + " đ";
+
+  XLSX.utils.sheet_add_aoa(
+
+    worksheet,
+
+    [totalRow],
+
+    {
+      origin: -1,
+    }
+
+  );
+
+  /*
+  |--------------------------------------------------------------------------
+  | Merge Total Row
+  |--------------------------------------------------------------------------
+  */
+
+  worksheet["!merges"].push({
+
+    s: {
+      r: data.length + 5,
+      c: 0,
+    },
+
+    e: {
+      r: data.length + 5,
+      c: totalCols - 2,
+    },
+
+  });
+
+  /*
+  |--------------------------------------------------------------------------
+  | Total Row Style
+  |--------------------------------------------------------------------------
+  */
+
+  const totalRowIndex =
+    data.length + 5;
+
+  for (
+    let col = 0;
+    col < totalCols;
+    col++
+  ) {
+
+    const cell =
+      XLSX.utils.encode_cell({
+
+        r: totalRowIndex,
+
+        c: col,
+
+      });
+
+    if (worksheet[cell]) {
+
+      worksheet[cell].s = {
+
+        font: {
+
+          bold: true,
+
+          color: {
+            rgb: "FFFFFF",
+          },
+
+          sz: 13,
+
+          name: "Arial",
+
+        },
+
+        fill: {
+
+          fgColor: {
+            rgb: "059669",
+          },
+
+        },
+
+        alignment: {
+
+          horizontal: "center",
+
+          vertical: "center",
+
+        },
+
+        border: {
+
+          top: {
+            style: "thin",
+          },
+
+          bottom: {
+            style: "thin",
+          },
+
+          left: {
+            style: "thin",
+          },
+
+          right: {
+            style: "thin",
+          },
+
+        },
+
+      };
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Align Money Right
+  |--------------------------------------------------------------------------
+  */
+
+  const totalMoneyCell =
+    XLSX.utils.encode_cell({
+
+      r: totalRowIndex,
+
+      c: totalCols - 1,
+
+    });
+
+  if (worksheet[totalMoneyCell]) {
+
+    worksheet[totalMoneyCell].s.alignment = {
+
+      horizontal: "right",
+
+      vertical: "center",
+
+    };
+  }
+
+  /*
+  |--------------------------------------------------------------------------
   | Column Width
   |--------------------------------------------------------------------------
   */
@@ -384,11 +574,11 @@ export const exportToExcel = (
 
     { wch: 20 },
 
-    { wch: 18 },
+    { wch: 20 },
 
-    { wch: 18 },
+    { wch: 24 },
 
-    { wch: 28 },
+    { wch: 20 },
 
   ];
 
@@ -400,11 +590,11 @@ export const exportToExcel = (
 
   worksheet["!rows"] = [
 
+    { hpt: 30 },
+
     { hpt: 28 },
 
     { hpt: 24 },
-
-    { hpt: 20 },
 
   ];
 

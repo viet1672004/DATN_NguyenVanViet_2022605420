@@ -7,6 +7,7 @@
       </button>
 
       <input
+        v-model="search"
         type="text"
         placeholder="Tìm theo tên, địa điểm"
         class="form-control"

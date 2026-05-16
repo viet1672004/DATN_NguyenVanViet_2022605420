@@ -23,6 +23,22 @@
         <option value="date">Theo ngày</option>
       </select>
 
+      <select v-model="parkId" class="form-select">
+
+        <option value="">
+          Tất cả khu vui chơi
+        </option>
+
+        <option
+          v-for="park in parkStore.items"
+          :key="park.ID"
+          :value="park.ID"
+        >
+          {{ park.ParkName }}
+        </option>
+
+      </select>
+
       <!-- STATUS 👈 NEW -->
       <select v-model="status" class="form-select">
         <option value="">Tất cả trạng thái</option>
@@ -184,6 +200,7 @@ import { useTicketStore } from "../provider/store";
 import { useAuthStore } from "@/views/modules/auths/provider/store";
 import { computed } from "vue";
 import { useToast } from "vue-toastification";
+import { useParkStore } from "@/views/modules/parks/provider/store";
 
 const authStore = useAuthStore();
 
@@ -200,6 +217,8 @@ const isCustomer = computed(() => {
 });
 
 const store = useTicketStore();
+const parkStore = useParkStore();
+const parkId = ref("");
 const router = useRouter();
 const toast = useToast();
 const search = ref("");
@@ -211,7 +230,8 @@ const loadData = () => {
   store.getList({
     search: search.value,
     type: type.value,
-    status: status.value 
+    status: status.value,
+    park_id: parkId.value
   });
 };
 
@@ -262,7 +282,14 @@ const formatPrice = (value) => {
   return Number(value).toLocaleString("vi-VN");
 };
 
-onMounted(loadData);
+onMounted(async () => {
+
+  await parkStore.getList({
+    status: 1
+  });
+
+  loadData();
+});
 </script>
 
 <style scoped>

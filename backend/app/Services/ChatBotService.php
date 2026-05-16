@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use App\Repositories\ChatBotRepository;
 use App\Models\ChatHistory;
-use Illuminate\Support\Str;
 
 class ChatBotService
 {
@@ -19,7 +19,7 @@ class ChatBotService
 
     /*
     |--------------------------------------------------------------------------
-    | CHAT AI
+    | CHAT
     |--------------------------------------------------------------------------
     */
 
@@ -34,16 +34,24 @@ class ChatBotService
         if (!auth()->check()) {
 
             return [
-                'reply' => 'Vui lòng đăng nhập để sử dụng chatbot.'
+                'reply' => 'Vui lòng đăng nhập.'
             ];
         }
 
-        $message = trim($data['message'] ?? '');
+        /*
+        |--------------------------------------------------------------------------
+        | MESSAGE
+        |--------------------------------------------------------------------------
+        */
+
+        $message = $this->cleanMessage(
+            $data['message'] ?? ''
+        );
 
         if (!$message) {
 
             return [
-                'reply' => 'Bạn hãy nhập nội dung cần hỗ trợ.'
+                'reply' => 'Vui lòng nhập nội dung.'
             ];
         }
 
@@ -59,7 +67,7 @@ class ChatBotService
 
         /*
         |--------------------------------------------------------------------------
-        | HANDLE AI
+        | HANDLE
         |--------------------------------------------------------------------------
         */
 
@@ -100,11 +108,12 @@ class ChatBotService
 
         /*
         |--------------------------------------------------------------------------
-        | CLEAN RESPONSE
+        | CLEAN REPLY
         |--------------------------------------------------------------------------
         */
 
         $reply = trim(
+
             preg_replace(
                 '/\s+/',
                 ' ',
@@ -138,81 +147,169 @@ class ChatBotService
 
     /*
     |--------------------------------------------------------------------------
-    | AI TICKET
+    | CLEAN MESSAGE
+    |--------------------------------------------------------------------------
+    */
+
+    private function cleanMessage($message)
+    {
+        $message = strip_tags($message);
+
+        $message = preg_replace(
+            '/\s+/',
+            ' ',
+            $message
+        );
+
+        return trim($message);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | NORMALIZE
+    |--------------------------------------------------------------------------
+    */
+
+    private function normalize($text)
+    {
+        $text = mb_strtolower($text);
+
+        $text = preg_replace(
+            '/[^\p{L}\p{N}\s]/u',
+            '',
+            $text
+        );
+
+        return trim($text);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TICKET AI
     |--------------------------------------------------------------------------
     */
 
     private function ticketAI($message)
     {
         $tickets = $this->repo
-            ->getTickets();
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER
-        |--------------------------------------------------------------------------
-        */
-
-        $filtered = $tickets->filter(function ($item) use ($message) {
-
-            $text = strtolower(
-
-                ($item->TicketName ?? '') . ' ' .
-                ($item->Description ?? '') . ' ' .
-                ($item->park->ParkName ?? '')
-            );
-
-            return $this->matchMessage(
-                $text,
-                $message
-            );
-        });
-
-        if ($filtered->isNotEmpty()) {
-
-            $tickets = $filtered;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | NO RESULT
-        |--------------------------------------------------------------------------
-        */
+            ->searchTickets($message);
 
         if ($tickets->isEmpty()) {
 
             return [
-                'reply' => 'Hiện tại mình chưa tìm thấy vé phù hợp với nhu cầu của bạn.'
+                'reply' => 'Không tìm thấy vé phù hợp.'
+            ];
+        }
+
+        $data = [];
+
+        foreach ($tickets->take(10) as $item) {
+
+            $data[] = [
+
+                'Tên vé' =>
+                    $item->TicketName,
+
+                'Giá' =>
+                    $item->Price,
+
+                'Khu vui chơi' =>
+                    $item->park->ParkName ?? '',
+
+                'Địa điểm' =>
+                    $item->park->Location ?? '',
+
+                'Mô tả' =>
+                    $item->Description ?? '',
+            ];
+        }
+
+        $prompt = "
+
+Người dùng hỏi:
+{$message}
+
+Dữ liệu:
+" . json_encode(
+            $data,
+            JSON_UNESCAPED_UNICODE
+        ) . "
+
+Quy tắc:
+- chỉ dùng dữ liệu được cung cấp
+- không bịa dữ liệu
+- không tự suy diễn
+- chọn dữ liệu phù hợp nhất
+- trả lời ngắn gọn tự nhiên
+- không liệt kê quá nhiều
+- ưu tiên 1 đến 2 gợi ý phù hợp nhất
+
+";
+
+        return [
+            'reply' => $this->askGPT($prompt)
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PARK AI
+    |--------------------------------------------------------------------------
+    */
+
+    private function parkAI($message)
+    {
+        $parks = $this->repo
+            ->searchParks($message);
+
+        /*
+        |--------------------------------------------------------------------------
+        | FALLBACK
+        |--------------------------------------------------------------------------
+        */
+
+        if ($parks->isEmpty()) {
+
+            $parks = $this->repo
+                ->getParks()
+                ->take(10);
+        }
+
+        if ($parks->isEmpty()) {
+
+            return [
+                'reply' =>
+                    'Hiện chưa có dữ liệu khu vui chơi.'
             ];
         }
 
         /*
         |--------------------------------------------------------------------------
-        | BUILD DATA
+        | DATA
         |--------------------------------------------------------------------------
         */
 
-        $data = '';
+        $data = [];
 
-        foreach ($tickets->take(5) as $item) {
+        foreach ($parks as $item) {
 
-            $data .= "
+            $data[] = [
 
-Tên vé:
-{$item->TicketName}
+                'Tên khu' =>
+                    $item->ParkName,
 
-Giá:
-{$item->Price}
+                'Địa điểm' =>
+                    $item->Location,
 
-Khu:
-{$item->park->ParkName}
+                'Mô tả' =>
+                    $item->Description,
 
-Mô tả:
-{$item->Description}
+                'Giờ mở cửa' =>
+                    $item->OpenTime,
 
--------------------
-
-";
+                'Giờ đóng cửa' =>
+                    $item->CloseTime,
+            ];
         }
 
         /*
@@ -226,170 +323,26 @@ Mô tả:
 Người dùng hỏi:
 {$message}
 
-Dữ liệu hệ thống:
-{$data}
+Danh sách khu vui chơi:
+" . json_encode(
+            $data,
+            JSON_UNESCAPED_UNICODE
+        ) . "
 
-Yêu cầu:
-- trả lời tự nhiên như nhân viên tư vấn thật
-- ưu tiên đúng nhu cầu người dùng
-- trả lời rõ ràng
-- tối đa 4 câu
-- không lan man
-- không liệt kê toàn bộ dữ liệu
-- nếu có vé phù hợp thì giới thiệu ngắn gọn
+Quy tắc:
 - chỉ dùng dữ liệu được cung cấp
 - không bịa dữ liệu
+- không tự suy diễn
+- nếu người dùng hỏi đi biển thì ưu tiên:
+  + khu gần biển
+  + công viên nước
+  + hồ bơi
+- nếu có khu phù hợp thì giới thiệu ngắn gọn
+- nếu không có dữ liệu phù hợp thì nói rõ
+- trả lời tự nhiên
+- trả lời ngắn gọn
 
 ";
-
-        return [
-            'reply' => $this->askGPT($prompt)
-        ];
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | AI PARK
-    |--------------------------------------------------------------------------
-    */
-
-    private function parkAI($message)
-    {
-        $parks = $this->repo
-            ->getParks();
-
-        /*
-        |--------------------------------------------------------------------------
-        | KEYWORDS
-        |--------------------------------------------------------------------------
-        */
-
-        $keywords = $this->extractKeywords(
-            $message
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER
-        |--------------------------------------------------------------------------
-        */
-
-        $filtered = $parks->filter(function ($item) use ($message, $keywords) {
-
-            $text = strtolower(
-
-                ($item->ParkName ?? '') . ' ' .
-                ($item->Description ?? '') . ' ' .
-                ($item->Location ?? '')
-            );
-
-            /*
-            |--------------------------------------------------------------------------
-            | MATCH KEYWORD
-            |--------------------------------------------------------------------------
-            */
-
-            foreach ($keywords as $keyword) {
-
-                if (
-                    str_contains(
-                        $text,
-                        strtolower($keyword)
-                    )
-                ) {
-
-                    return true;
-                }
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | MATCH MESSAGE
-            |--------------------------------------------------------------------------
-            */
-
-            return $this->matchMessage(
-                $text,
-                $message
-            );
-        });
-
-        if ($filtered->isNotEmpty()) {
-
-            $parks = $filtered;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | NO RESULT
-        |--------------------------------------------------------------------------
-        */
-
-        if ($parks->isEmpty()) {
-
-            return [
-                'reply' => 'Hiện tại mình chưa tìm thấy khu vui chơi phù hợp với nhu cầu của bạn.'
-            ];
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | BUILD DATA
-        |--------------------------------------------------------------------------
-        */
-
-        $data = '';
-
-        foreach ($parks->take(5) as $item) {
-
-            $data .= "
-
-Tên khu:
-{$item->ParkName}
-
-Địa điểm:
-{$item->Location}
-
-Mô tả:
-{$item->Description}
-
-Giờ mở cửa:
-{$item->OpenTime}
-
-Giờ đóng cửa:
-{$item->CloseTime}
-
--------------------
-
-";
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | PROMPT
-        |--------------------------------------------------------------------------
-        */
-
-        $prompt = "
-
-        Người dùng hỏi:
-        {$message}
-
-        Dữ liệu hệ thống:
-        {$data}
-
-        Yêu cầu:
-        - trả lời tự nhiên như người thật
-        - đầy đủ ý
-        - không được trả lời giữa chừng
-        - tối đa 4 câu
-        - không lan man
-        - nếu có nhiều lựa chọn thì nêu rõ tên
-        - phải nói rõ nội dung chính
-        - chỉ dùng dữ liệu được cung cấp
-        - không bịa dữ liệu
-
-        ";
 
         return [
             'reply' => $this->askGPT($prompt)
@@ -415,7 +368,7 @@ Giờ đóng cửa:
         if (!$bookingCode) {
 
             return [
-                'reply' => 'Bạn vui lòng gửi mã booking để mình kiểm tra giúp nhé.'
+                'reply' => 'Vui lòng gửi mã booking.'
             ];
         }
 
@@ -427,16 +380,32 @@ Giờ đóng cửa:
         if (!$booking) {
 
             return [
-                'reply' => 'Mình chưa tìm thấy đơn hàng này.'
+                'reply' => 'Không tìm thấy booking.'
             ];
         }
 
+        $statusMap = [
+
+            'pending' =>
+                'Chờ thanh toán',
+
+            'paid' =>
+                'Đã thanh toán',
+
+            'cancelled' =>
+                'Đã hủy',
+
+            'completed' =>
+                'Hoàn thành',
+        ];
+
+        $status = $statusMap[
+            strtolower($booking->Status)
+        ] ?? $booking->Status;
+
         return [
-            'reply' => "
-
-                    Mã booking {$booking->BookingCode} hiện đang ở trạng thái {$booking->Status}.
-
-                    "
+            'reply' =>
+                "Booking {$booking->BookingCode}: {$status}."
         ];
     }
 
@@ -457,12 +426,16 @@ Giờ đóng cửa:
             */
 
             $histories = ChatHistory::query()
+
                 ->where(
                     'UserID',
                     auth()->id()
                 )
+
                 ->latest('CreatedAt')
+
                 ->limit(5)
+
                 ->get();
 
             $historyText = '';
@@ -471,13 +444,13 @@ Giờ đóng cửa:
 
                 $historyText .= "
 
-    Người dùng:
-    {$item->Message}
+Người dùng:
+{$item->Message}
 
-    Chatbot:
-    {$item->Reply}
+Chatbot:
+{$item->Reply}
 
-    ";
+";
             }
 
             /*
@@ -488,35 +461,26 @@ Giờ đóng cửa:
 
             $fullPrompt = "
 
-    Bạn là chatbot chăm sóc khách hàng của FunTicket.
+Bạn là chatbot FunTicket.
 
-    Phong cách:
-    - trả lời tự nhiên như người thật
-    - nói chuyện thân thiện
-    - rõ ràng
-    - đầy đủ ý
-    - không cụt ngủn
-    - không lan man
-    - tối đa 4 câu
-    - không dùng icon
-    - không lặp lại lời chào
+Quy tắc:
+- chỉ dùng dữ liệu được cung cấp
+- không bịa dữ liệu
+- không suy diễn
+- nếu không có dữ liệu thì nói không có dữ liệu
+- trả lời tự nhiên như người thật
+- trả lời ngắn gọn
+- ưu tiên 1 câu
+- không dùng icon
+- không tự tạo địa điểm
+- không trả lời lan man
 
-    Quy tắc:
-    - chỉ dùng dữ liệu được cung cấp
-    - không bịa dữ liệu
-    - không suy diễn
-    - luôn trả lời hoàn chỉnh câu
-    - không được dừng giữa chừng
-    - nếu đang liệt kê phải liệt kê đầy đủ
-    - luôn ghi rõ tên khu hoặc tên vé
-    - nếu có nhiều dữ liệu thì chọn dữ liệu phù hợp nhất
+Lịch sử:
+{$historyText}
 
-    Lịch sử hội thoại:
-    {$historyText}
+{$prompt}
 
-    {$prompt}
-
-    ";
+";
 
             /*
             |--------------------------------------------------------------------------
@@ -525,11 +489,13 @@ Giờ đóng cửa:
             */
 
             $response = Http::timeout(30)
+
                 ->withHeaders([
 
                     'Content-Type' => 'application/json',
+                ])
 
-                ])->post(
+                ->post(
                     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . env('GEMINI_API_KEY'),
                     [
 
@@ -545,33 +511,16 @@ Giờ đóng cửa:
 
                         'generationConfig' => [
 
-                            'temperature' => 0.4,
+                            'temperature' => 0.1,
 
-                            'maxOutputTokens' => 500,
+                            'maxOutputTokens' => 120,
 
-                            'topP' => 0.8
+                            'topP' => 0.3
                         ]
                     ]
                 );
 
             $data = $response->json();
-
-            /*
-            |--------------------------------------------------------------------------
-            | QUOTA
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                isset($data['error']['message']) &&
-                str_contains(
-                    strtolower($data['error']['message']),
-                    'quota'
-                )
-            ) {
-
-                return 'Hệ thống AI đang quá tải tạm thời, bạn thử lại sau ít giây nhé.';
-            }
 
             /*
             |--------------------------------------------------------------------------
@@ -581,59 +530,46 @@ Giờ đóng cửa:
 
             if (isset($data['error'])) {
 
-                return 'AI hiện chưa phản hồi ổn định, bạn thử lại sau nhé.';
+                return 'AI hiện chưa phản hồi.';
             }
 
             /*
             |--------------------------------------------------------------------------
-            | GET TEXT
+            | TEXT
             |--------------------------------------------------------------------------
             */
 
             $text = trim(
-                $data['candidates'][0]['content']['parts'][0]['text']
-                ?? ''
-            );
 
-            /*
-            |--------------------------------------------------------------------------
-            | EMPTY
-            |--------------------------------------------------------------------------
-            */
+                data_get(
+                    $data,
+                    'candidates.0.content.parts.0.text',
+                    ''
+                )
+            );
 
             if (!$text) {
 
-                return 'Mình chưa thể phản hồi lúc này.';
+                return 'Không có dữ liệu.';
             }
 
             /*
             |--------------------------------------------------------------------------
-            | CLEAN TEXT
+            | CLEAN
             |--------------------------------------------------------------------------
             */
 
-            $text = preg_replace('/\s+/', ' ', $text);
-
-            /*
-            |--------------------------------------------------------------------------
-            | FIX CUT RESPONSE
-            |--------------------------------------------------------------------------
-            */
-
-            $lastChar = mb_substr($text, -1);
-
-            $validEnds = ['.', '!', '?', '"', '”'];
-
-            if (!in_array($lastChar, $validEnds)) {
-
-                $text .= '...';
-            }
+            $text = preg_replace(
+                '/\s+/',
+                ' ',
+                $text
+            );
 
             return trim($text);
 
         } catch (\Exception $e) {
 
-            return 'Hệ thống AI hiện đang bận, bạn thử lại sau nhé.';
+            return 'Hệ thống AI đang bận.';
         }
     }
 
@@ -645,7 +581,9 @@ Giờ đóng cửa:
 
     private function detectIntent($message)
     {
-        $message = strtolower($message);
+        $message = $this->normalize(
+            $message
+        );
 
         /*
         |--------------------------------------------------------------------------
@@ -700,7 +638,8 @@ Giờ đóng cửa:
             str_contains($message, 'biển') ||
             str_contains($message, 'hồ bơi') ||
             str_contains($message, 'nước') ||
-            str_contains($message, 'giải trí')
+            str_contains($message, 'hải phòng') ||
+            str_contains($message, 'sầm sơn')
 
         ) {
 
@@ -708,106 +647,6 @@ Giờ đóng cửa:
         }
 
         return 'general';
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | EXTRACT KEYWORDS
-    |--------------------------------------------------------------------------
-    */
-
-    private function extractKeywords($message)
-    {
-        $message = strtolower($message);
-
-        $keywords = [];
-
-        /*
-        |--------------------------------------------------------------------------
-        | BEACH
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            str_contains($message, 'biển')
-        ) {
-
-            $keywords = array_merge($keywords, [
-
-                'biển',
-                'bãi biển',
-                'water',
-                'công viên nước',
-                'hồ bơi'
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | KID
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            str_contains($message, 'trẻ em')
-        ) {
-
-            $keywords[] = 'trẻ em';
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | ADVENTURE
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            str_contains($message, 'mạo hiểm')
-        ) {
-
-            $keywords[] = 'mạo hiểm';
-        }
-
-        return array_unique($keywords);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | MATCH MESSAGE
-    |--------------------------------------------------------------------------
-    */
-
-    private function matchMessage($text, $message)
-    {
-        $message = strtolower($message);
-
-        $words = explode(
-            ' ',
-            $message
-        );
-
-        foreach ($words as $word) {
-
-            $word = trim($word);
-
-            if (
-                strlen($word) < 2
-            ) {
-                continue;
-            }
-
-            if (
-                str_contains(
-                    $text,
-                    $word
-                )
-            ) {
-
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /*
@@ -836,7 +675,7 @@ Giờ đóng cửa:
 
         ) {
 
-            return 'Mình có thể hỗ trợ bạn về vé, booking hoặc tư vấn khu vui chơi phù hợp.';
+            return 'Mình có thể hỗ trợ vé, booking và khu vui chơi.';
         }
 
         /*
@@ -852,51 +691,36 @@ Giờ đóng cửa:
 
         ) {
 
-            return 'Rất vui vì đã hỗ trợ được bạn.';
+            return 'Rất vui được hỗ trợ.';
         }
 
         /*
         |--------------------------------------------------------------------------
-        | CONSULT
+        | SHORT
         |--------------------------------------------------------------------------
         */
 
-        if (
-            str_contains($message, 'tư vấn')
-        ) {
+        if (strlen($message) < 2) {
 
-            return 'Bạn muốn đi biển, công viên nước hay khu vui chơi cảm giác mạnh để mình gợi ý phù hợp nhé?';
+            return 'Vui lòng nhập rõ hơn.';
         }
 
         /*
         |--------------------------------------------------------------------------
-        | SHORT MESSAGE
-        |--------------------------------------------------------------------------
-        */
-
-        if (strlen($message) < 3) {
-
-            return 'Bạn có thể nói rõ hơn để mình hỗ trợ chính xác hơn nhé.';
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | AI FALLBACK
+        | FALLBACK
         |--------------------------------------------------------------------------
         */
 
         return $this->askGPT("
 
-        Người dùng hỏi:
-        {$message}
+Người dùng hỏi:
+{$message}
 
-        Yêu cầu:
-        - trả lời tự nhiên
-        - đúng trọng tâm
-        - tối đa 4 câu
-        - không lan man
-        - không bịa dữ liệu
+Quy tắc:
+- trả lời ngắn
+- đúng trọng tâm
+- không bịa dữ liệu
 
-        ");
+");
     }
 }

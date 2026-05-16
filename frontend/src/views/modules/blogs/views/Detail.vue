@@ -91,10 +91,9 @@
       </div>
 
       <!-- Content -->
-      <div
-        class="content"
-        v-html="blog.Content"
-      />
+      <div class="content">
+        {{ blog.Content }}
+      </div>
 
       <div
         v-if="blog.park"
@@ -461,6 +460,8 @@ function formatDate(date) {
 
   font-size: 17px;
   line-height: 1.95;
+
+  white-space: pre-line;
 }
 
 /* Paragraph */

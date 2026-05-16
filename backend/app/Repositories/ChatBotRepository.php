@@ -10,28 +10,73 @@ class ChatBotRepository
 {
     /*
     |--------------------------------------------------------------------------
-    | PARKS
+    | SEARCH TICKETS
     |--------------------------------------------------------------------------
     */
 
-    public function getParks()
+    public function searchTickets($message)
     {
-        return Park::query()
+        return Ticket::query()
+
+            ->with('park')
+
             ->where('Status', 1)
+
+            ->where(function ($query) use ($message) {
+
+                $query->where(
+                    'TicketName',
+                    'like',
+                    "%{$message}%"
+                )
+
+                ->orWhere(
+                    'Description',
+                    'like',
+                    "%{$message}%"
+                );
+            })
+
+            ->limit(5)
+
             ->get();
     }
 
     /*
     |--------------------------------------------------------------------------
-    | TICKETS
+    | SEARCH PARKS
     |--------------------------------------------------------------------------
     */
 
-    public function getTickets()
+    public function searchParks($message)
     {
-        return Ticket::query()
+        return Park::query()
+
             ->where('Status', 1)
-            ->with('park')
+
+            ->where(function ($query) use ($message) {
+
+                $query->where(
+                    'ParkName',
+                    'like',
+                    "%{$message}%"
+                )
+
+                ->orWhere(
+                    'Description',
+                    'like',
+                    "%{$message}%"
+                )
+
+                ->orWhere(
+                    'Location',
+                    'like',
+                    "%{$message}%"
+                );
+            })
+
+            ->limit(5)
+
             ->get();
     }
 
@@ -41,15 +86,17 @@ class ChatBotRepository
     |--------------------------------------------------------------------------
     */
 
-    public function getBookingByCode(
-        $bookingCode
-    ) {
+    public function getBookingByCode($bookingCode)
+    {
         return Booking::query()
+
             ->where(
                 'BookingCode',
                 $bookingCode
             )
+
             ->with('payment')
+
             ->first();
     }
 }
