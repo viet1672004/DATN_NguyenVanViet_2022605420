@@ -516,11 +516,13 @@ onMounted(() => {
 
   border-radius: 14px;
 
-  line-height: 1.45;
+  line-height: 1.6;
 
   font-size: 13px;
 
   word-break: break-word;
+
+  white-space: pre-wrap;
 }
 
 .message.bot {

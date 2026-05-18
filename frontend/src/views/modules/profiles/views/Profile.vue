@@ -135,12 +135,29 @@ const errors = reactive({
 });
 
 /* LOAD USER */
-onMounted(() => {
-  if (store.user) {
-    form.name = store.user.Name;
-    form.email = store.user.Email;
-    form.phone = store.user.Phone;
+onMounted(async () => {
+
+  try {
+
+    // gọi API lấy user mới nhất từ DB
+    const res = await profileApi.me();
+
+    const user = res.data;
+
+    // đổ dữ liệu vào form
+    form.name = user.Name || "";
+    form.email = user.Email || "";
+    form.phone = user.Phone || "";
+
+    // cập nhật lại store
+    store.setUser(user);
+
+  } catch (err) {
+
+    console.error(err);
+
   }
+
 });
 
 /*

@@ -34,10 +34,25 @@ class ChatBotRepository
                     'Description',
                     'like',
                     "%{$message}%"
-                );
+                )
+
+                ->orWhereHas('park', function ($parkQuery) use ($message) {
+
+                    $parkQuery->where(
+                        'ParkName',
+                        'like',
+                        "%{$message}%"
+                    )
+
+                    ->orWhere(
+                        'Location',
+                        'like',
+                        "%{$message}%"
+                    );
+                });
             })
 
-            ->limit(5)
+            ->limit(10)
 
             ->get();
     }

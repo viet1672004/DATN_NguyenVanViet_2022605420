@@ -114,12 +114,7 @@ class ChatBotService
         */
 
         $reply = trim(
-
-            preg_replace(
-                '/\s+/',
-                ' ',
-                $result['reply'] ?? ''
-            )
+            $result['reply'] ?? ''
         );
 
         /*
@@ -342,25 +337,34 @@ class ChatBotService
 
     $prompt = "
 
-Người dùng hỏi:
-{$message}
+    Người dùng hỏi:
+    {$message}
 
-Danh sách vé:
-" . json_encode(
-        $data,
-        JSON_UNESCAPED_UNICODE
-    ) . "
+    Danh sách vé:
+    " . json_encode(
+            $data,
+            JSON_UNESCAPED_UNICODE
+        ) . "
 
-Yêu cầu:
-- trả lời đầy đủ
-- giới thiệu vé phù hợp
-- nêu giá vé
-- nêu khu vui chơi
-- trình bày dễ đọc
-- trả lời tự nhiên như nhân viên tư vấn
-- không bịa thông tin
+    Yêu cầu:
+    - trả lời bằng danh sách rõ ràng
+    - dùng gạch đầu dòng hoặc đánh số
+    - mỗi vé trình bày theo format:
 
-";
+    1. Tên vé
+    - Giá vé:
+    - Khu vui chơi:
+    - Địa điểm:
+    - Mô tả:
+
+    - xuống dòng giữa các vé
+    - trình bày dễ đọc
+    - ưu tiên vé phù hợp nhất
+    - trả lời tự nhiên như nhân viên tư vấn
+    - không bịa thông tin
+    - không viết thành 1 đoạn văn dài
+
+    ";
 
     return [
         'reply' => $this->askGPT($prompt)
@@ -468,16 +472,29 @@ Yêu cầu:
         ) . "
 
     Yêu cầu:
-    - tư vấn chi tiết
+    - trả lời bằng danh sách rõ ràng
+    - dùng gạch đầu dòng hoặc đánh số
+    - mỗi khu vui chơi trình bày theo format:
+
+    1. Tên khu vui chơi
+    - Địa điểm:
+    - Mô tả nổi bật:
+    - Giờ mở cửa:
+    - Giờ đóng cửa:
+
+    - xuống dòng giữa các khu
+    - trình bày dễ đọc
     - ưu tiên khu phù hợp nhất
     - nếu liên quan biển thì ưu tiên:
     + công viên nước
     + hồ bơi
     + khu gần biển
-    - giới thiệu nổi bật
-    - trình bày dễ đọc
-    - trả lời tự nhiên
+    - nếu liên quan núi thì ưu tiên:
+    + núi bà đen
+    + chỗ có núi
+    - trả lời tự nhiên như nhân viên tư vấn
     - không bịa thông tin
+    - không viết thành 1 đoạn văn dài
 
     ";
 
@@ -581,42 +598,42 @@ Yêu cầu:
 
                 $historyText .= "
 
-Người dùng:
-{$item->Message}
+            Người dùng:
+            {$item->Message}
 
-Chatbot:
-{$item->Reply}
+            Chatbot:
+            {$item->Reply}
 
-";
-            }
+            ";
+                        }
 
-            /*
-            |--------------------------------------------------------------------------
-            | FULL PROMPT
-            |--------------------------------------------------------------------------
-            */
+                        /*
+                        |--------------------------------------------------------------------------
+                        | FULL PROMPT
+                        |--------------------------------------------------------------------------
+                        */
 
-            $fullPrompt = "
+                        $fullPrompt = "
 
-Bạn là chatbot hỗ trợ khách hàng của FunTicket.
+            Bạn là chatbot hỗ trợ khách hàng của FunTicket.
 
-Nguyên tắc:
-- chỉ sử dụng dữ liệu được cung cấp
-- không bịa thông tin
-- nếu không có dữ liệu thì nói rõ
-- trả lời đầy đủ
-- trình bày rõ ràng
-- ưu tiên trải nghiệm người dùng
-- có thể xuống dòng cho dễ đọc
-- giới thiệu chi tiết nếu phù hợp
-- tư vấn tự nhiên như nhân viên hỗ trợ thật
+            Nguyên tắc:
+            - chỉ sử dụng dữ liệu được cung cấp
+            - không bịa thông tin
+            - nếu không có dữ liệu thì nói rõ
+            - trả lời đầy đủ
+            - trình bày rõ ràng
+            - ưu tiên trải nghiệm người dùng
+            - có thể xuống dòng cho dễ đọc
+            - giới thiệu chi tiết nếu phù hợp
+            - tư vấn tự nhiên như nhân viên hỗ trợ thật
 
-Lịch sử:
-{$historyText}
+            Lịch sử:
+            {$historyText}
 
-{$prompt}
+            {$prompt}
 
-";
+            ";
 
             /*
             |--------------------------------------------------------------------------
@@ -698,8 +715,8 @@ Lịch sử:
             */
 
             $text = preg_replace(
-                '/\s+/',
-                ' ',
+                "/\n{3,}/",
+                "\n\n",
                 $text
             );
 
@@ -707,7 +724,9 @@ Lịch sử:
 
         } catch (\Exception $e) {
 
-            return 'Hệ thống AI đang bận.';
+            \Log::error($e);
+
+            return $e->getMessage();
         }
     }
 
@@ -724,9 +743,9 @@ Lịch sử:
         );
 
         /*
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         | BOOKING
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         */
 
         if (
@@ -742,9 +761,9 @@ Lịch sử:
         }
 
         /*
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         | TICKET
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         */
 
         if (
@@ -761,9 +780,9 @@ Lịch sử:
         }
 
         /*
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         | PARK
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         */
 
         if (
@@ -813,7 +832,7 @@ Lịch sử:
 
         ) {
 
-            return 'Mình có thể hỗ trợ vé, booking và khu vui chơi.';
+            return 'Xin chào! Mình có thể giúp gì được cho bạn? Nếu bạn muốn mình có thể hỗ trợ vé, booking và khu vui chơi.';
         }
 
         /*
@@ -851,14 +870,14 @@ Lịch sử:
 
         return $this->askGPT("
 
-Người dùng hỏi:
-{$message}
+        Người dùng hỏi:
+        {$message}
 
-Quy tắc:
-- trả lời ngắn
-- đúng trọng tâm
-- không bịa dữ liệu
+        Quy tắc:
+        - trả lời ngắn
+        - đúng trọng tâm
+        - không bịa dữ liệu
 
-");
+        ");
     }
 }

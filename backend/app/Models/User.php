@@ -11,10 +11,10 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $table = 'Users';        // 👈 Tên bảng đúng
-    protected $primaryKey = 'ID';      // 👈 PK là ID
-    public $incrementing = false;      // 👈 vì GUID
-    protected $keyType = 'string';     // 👈 GUID là string
+    protected $table = 'Users';        
+    protected $primaryKey = 'ID';      
+    public $incrementing = false;      
+    protected $keyType = 'string';     
 
     protected $fillable = [
         'ID',

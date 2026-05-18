@@ -22,8 +22,13 @@
       </div>
 
       <div class="user-footer">
-        <button @click.stop="goProfile">Hồ sơ</button>
-        <button @click.stop="logout">Đăng xuất</button>
+        <button class="profile-btn" @click.stop="goProfile">
+          Hồ sơ
+        </button>
+
+        <button class="logout-btn" @click.stop="logout">
+          Đăng xuất
+        </button>
       </div>
     </div>
   </div>
@@ -152,21 +157,52 @@ onBeforeUnmount(() => {
 
   justify-content: space-between;
 
-  padding: 10px;
+  gap: 10px;
+
+  padding: 14px;
 }
 
 .user-footer button {
-  padding: 5px 10px;
+  flex: 1;
 
-  border: 1px solid #ccc;
+  padding: 10px 14px;
 
-  background: white;
+  border: none;
+
+  border-radius: 10px;
+
+  font-weight: 600;
 
   cursor: pointer;
+
+  transition: all 0.25s ease;
+  
 }
 
-.user-footer button:hover {
-  background: #f4f4f4;
+/* hồ sơ */
+.profile-btn {
+  background: linear-gradient(135deg, #3c8dbc, #5dade2);
+
+  color: white;
+}
+
+.profile-btn:hover {
+  transform: translateY(-2px);
+
+  box-shadow: 0 4px 10px rgba(60, 141, 188, 0.35);
+}
+
+/* đăng xuất */
+.logout-btn {
+  background: linear-gradient(135deg, #e74c3c, #ff6b6b);
+
+  color: white;
+}
+
+.logout-btn:hover {
+  transform: translateY(-2px);
+
+  box-shadow: 0 4px 10px rgba(231, 76, 60, 0.35);
 }
 
 /* avatar nhỏ */
