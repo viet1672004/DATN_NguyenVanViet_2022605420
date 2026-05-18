@@ -52,17 +52,44 @@
 
         <div class="form-group">
           <label>Mật khẩu hiện tại</label>
-          <input type="password" v-model="password.current" class="form-control" />
+          <input
+            type="password"
+            v-model="password.current"
+            class="form-control"
+
+          />
+
+          <span v-if="errors.current" class="error">
+            {{ errors.current }}
+          </span>
         </div>
 
         <div class="form-group">
           <label>Mật khẩu mới</label>
-          <input type="password" v-model="password.new" class="form-control" />
+          <input
+            type="password"
+            v-model="password.new"
+            class="form-control"
+
+          />
+
+          <span v-if="errors.new" class="error">
+            {{ errors.new }}
+          </span>
         </div>
 
         <div class="form-group">
           <label>Xác nhận mật khẩu</label>
-          <input type="password" v-model="password.confirm" class="form-control" />
+          <input
+            type="password"
+            v-model="password.confirm"
+            class="form-control"
+
+          />
+
+          <span v-if="errors.confirm" class="error">
+            {{ errors.confirm }}
+          </span>
         </div>
 
       </form>
@@ -73,7 +100,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from "vue";
+import { reactive, ref, onMounted, watch } from "vue";
 import { useAuthStore } from "@/views/modules/auths/provider/store";
 import { useRouter } from "vue-router";
 import profileApi from "@/views/modules/profiles/provider/api";
@@ -101,6 +128,12 @@ const password = reactive({
   confirm: ""
 });
 
+const errors = reactive({
+  current: "",
+  new: "",
+  confirm: ""
+});
+
 /* LOAD USER */
 onMounted(() => {
   if (store.user) {
@@ -108,6 +141,75 @@ onMounted(() => {
     form.email = store.user.Email;
     form.phone = store.user.Phone;
   }
+});
+
+/*
+|--------------------------------------------------------------------------
+| REALTIME VALIDATE
+|--------------------------------------------------------------------------
+*/
+
+// CURRENT PASSWORD
+watch(() => password.current, (value) => {
+
+  if (!value.trim()) {
+
+    errors.current =
+      "Mật khẩu hiện tại không được để trống";
+
+  } else {
+
+    errors.current = "";
+  }
+
+});
+
+// NEW PASSWORD
+watch(() => password.new, (value) => {
+
+  if (!value.trim()) {
+
+    errors.new =
+      "Mật khẩu mới không được để trống";
+
+    return;
+  }
+
+  if (
+    !/^(?=.*[A-Z])(?=.*[0-9])(?=.*[\W_]).{6,}$/.test(value)
+  ) {
+
+    errors.new =
+      "Mật khẩu phải có chữ hoa, số và ký tự đặc biệt";
+
+  } else {
+
+    errors.new = "";
+  }
+
+});
+
+// CONFIRM PASSWORD
+watch(() => password.confirm, (value) => {
+
+  if (!value.trim()) {
+
+    errors.confirm =
+      "Vui lòng xác nhận mật khẩu";
+
+    return;
+  }
+
+  if (value !== password.new) {
+
+    errors.confirm =
+      "Mật khẩu xác nhận không khớp";
+
+  } else {
+
+    errors.confirm = "";
+  }
+
 });
 
 /* UPDATE PROFILE */
@@ -124,29 +226,152 @@ const update = async () => {
   }
 };
 
-/* CHANGE PASSWORD */
 const changePassword = async () => {
-  if (!password.current || !password.new || !password.confirm) {
-    toast.error("Vui lòng nhập đầy đủ thông tin");
+
+  /*
+  |--------------------------------------------------------------------------
+  | RESET ERRORS
+  |--------------------------------------------------------------------------
+  */
+
+  Object.keys(errors).forEach(key => {
+    errors[key] = "";
+  });
+
+  let valid = true;
+
+  /*
+  |--------------------------------------------------------------------------
+  | CURRENT PASSWORD
+  |--------------------------------------------------------------------------
+  */
+
+  if (!password.current.trim()) {
+
+    errors.current =
+      "Mật khẩu hiện tại không được để trống";
+
+    valid = false;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | NEW PASSWORD
+  |--------------------------------------------------------------------------
+  */
+
+  if (!password.new.trim()) {
+
+    errors.new =
+      "Mật khẩu mới không được để trống";
+
+    valid = false;
+
+  } else if (
+    !/^(?=.*[A-Z])(?=.*[0-9])(?=.*[\W_]).{6,}$/.test(password.new)
+  ) {
+
+    errors.new =
+      "Mật khẩu phải có chữ hoa, số và ký tự đặc biệt";
+
+    valid = false;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | CONFIRM PASSWORD
+  |--------------------------------------------------------------------------
+  */
+
+  if (!password.confirm.trim()) {
+
+    errors.confirm =
+      "Vui lòng xác nhận mật khẩu";
+
+    valid = false;
+
+  } else if (
+    password.new !== password.confirm
+  ) {
+
+    errors.confirm =
+      "Mật khẩu xác nhận không khớp";
+
+    valid = false;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | VALIDATE FAILED
+  |--------------------------------------------------------------------------
+  */
+
+  if (!valid) {
+
+    toast.error(
+      "Vui lòng kiểm tra thông tin"
+    );
+
     return;
   }
 
-  if (password.new !== password.confirm) {
-    toast.error("Mật khẩu không khớp");
-    return;
-  }
+  /*
+  |--------------------------------------------------------------------------
+  | CHANGE PASSWORD
+  |--------------------------------------------------------------------------
+  */
 
   try {
-    await profileApi.changePassword(password);
-    toast.success("Đổi mật khẩu thành công");
 
-    password.current = "";
-    password.new = "";
-    password.confirm = "";
+    await profileApi.changePassword(password);
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUCCESS
+    |--------------------------------------------------------------------------
+    */
+
+    toast.success(
+      "Đổi mật khẩu thành công, vui lòng đăng nhập lại"
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESET ERRORS
+    |--------------------------------------------------------------------------
+    */
+
+    Object.keys(errors).forEach(key => {
+      errors[key] = "";
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOGOUT
+    |--------------------------------------------------------------------------
+    */
+
+    setTimeout(async () => {
+
+      await store.logout();
+
+      router.replace("/login");
+
+    }, 1500);
 
   } catch (err) {
-    console.error(err.response?.data);
-    toast.error("Đổi mật khẩu thất bại");
+
+    console.error(
+      err.response?.data
+    );
+
+    toast.error(
+
+      err.response?.data?.message ||
+
+      "Đổi mật khẩu thất bại"
+
+    );
   }
 };
 
@@ -264,5 +489,15 @@ const logout = async () => {
 /* click */
 .btn-save:active {
   transform: scale(0.96);
+}
+
+.error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.error-input {
+  border: 1px solid #ef4444 !important;
 }
 </style>npm run 

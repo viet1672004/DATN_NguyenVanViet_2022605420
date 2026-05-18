@@ -13,7 +13,7 @@
         </span>
 
         <span class="title">
-          Cập nhật Blog
+          Cập nhật Bài viết
         </span>
 
       </div>

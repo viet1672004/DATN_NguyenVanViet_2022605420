@@ -270,7 +270,7 @@ const confirmDelete = async () => {
 
     await blogStore.deleteBlog(deleteId.value);
 
-    toast.success("Xóa blog thành công.");
+    toast.success("Xóa bài viết thành công.");
 
     showDeletePopup.value = false;
 
@@ -280,7 +280,7 @@ const confirmDelete = async () => {
 
     console.error(e);
 
-    toast.error("Xóa blog thất bại.");
+    toast.error("Xóa bài viết thất bại.");
 
   }
 };

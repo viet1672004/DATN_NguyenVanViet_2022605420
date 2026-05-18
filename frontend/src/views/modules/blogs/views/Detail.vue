@@ -14,7 +14,7 @@
         </span>
 
         <span class="page-title">
-          Chi tiết Blog
+          Chi tiết Bài viết
         </span>
 
       </div>

@@ -13,20 +13,30 @@
       <form class="login-form" @submit.prevent="submit">
 
       <!-- Register fields -->
-      <input v-if="isRegister" v-model="form.name" placeholder="Họ và tên" />
+      <input v-if="isRegister" v-model="form.name" placeholder="Họ và tên" :class="{ 'error-input': errors.name }"/>
 <p v-if="isRegister && errors.name" class="error">
   {{ errors.name }}
 </p>
   
-<input v-if="isRegister" v-model="form.phone" placeholder="Số điện thoại" @input="form.phone = form.phone.replace(/[^0-9]/g, '')" />
+<input v-if="isRegister" v-model="form.phone" placeholder="Số điện thoại" @input="form.phone = form.phone.replace(/[^0-9]/g, '')" 
+:class="{ 'error-input': errors.phone }"/>
 <p v-if="isRegister && errors.phone" class="error">
   {{ errors.phone }}
 </p>
 
-<input v-model="form.email" placeholder="Email" />
+<input
+  v-model="form.email"
+  placeholder="Email"
+  :class="{ 'error-input': errors.email }"
+/>
 <p v-if="errors.email" class="error">{{ errors.email }}</p>
 
-<input v-model="form.password" type="password" placeholder="Mật khẩu" />
+<input
+  v-model="form.password"
+  type="password"
+  placeholder="Mật khẩu"
+  :class="{ 'error-input': errors.password }"
+/>
 <p v-if="errors.password" class="error">{{ errors.password }}</p>
 
 <input
@@ -34,6 +44,7 @@
   v-model="form.password_confirmation"
   type="password"
   placeholder="Nhập lại mật khẩu"
+  :class="{ 'error-input': errors.password_confirmation }"
 />
 <p v-if="errors.password_confirmation" class="error">
   {{ errors.password_confirmation }}
@@ -78,6 +89,7 @@ const router = useRouter();
 const toast = useToast();
 const isRegister = ref(false);
 const error = ref("");
+const isResetting = ref(false);
 
 const form = reactive({
   name: "",
@@ -94,6 +106,58 @@ const errors = reactive({
   phone: "",
   password: "",
   password_confirmation: "",
+});
+
+watch(() => form.email, (value) => {
+
+  if (isResetting.value) return;
+
+  if (!value.trim()) {
+
+    errors.email =
+      "Email không được để trống";
+
+    return;
+  }
+
+  const regex = /^\S+@\S+\.\S+$/;
+
+  if (!regex.test(value)) {
+
+    errors.email =
+      "Email không đúng định dạng";
+
+  } else {
+
+    errors.email = "";
+  }
+
+});
+
+watch(() => form.password, (value) => {
+
+  if (isResetting.value) return;
+
+  if (!value.trim()) {
+
+    errors.password =
+      "Mật khẩu không được để trống";
+
+    return;
+  }
+
+  if (
+    !/^(?=.*[A-Z])(?=.*[0-9])(?=.*[\W_]).{6,}$/.test(value)
+  ) {
+
+    errors.password =
+      "Mật khẩu phải có chữ hoa, số và ký tự đặc biệt";
+
+  } else {
+
+    errors.password = "";
+  }
+
 });
 
 // 🔁 đổi mode
@@ -166,7 +230,7 @@ const validate = () => {
       error.value = "Vui lòng nhập lại mật khẩu";
       return false;
     } else if (form.password !== form.password_confirmation) {
-      errors.password_confirmation = "Không khớp";
+      errors.password_confirmation = "Mật khẩu Không khớp";
       valid = false;
     }
   }
@@ -209,6 +273,32 @@ const submit = async () => {
       toast.success(
         "Đăng ký thành công"
       );
+
+      isResetting.value = true;
+
+      /*
+      |--------------------------------------------------------------------------
+      | RESET FORM
+      |--------------------------------------------------------------------------
+      */
+
+      Object.keys(form).forEach(key => {
+        form[key] = "";
+      });
+
+      /*
+      |--------------------------------------------------------------------------
+      | RESET ERRORS
+      |--------------------------------------------------------------------------
+      */
+
+      Object.keys(errors).forEach(key => {
+        errors[key] = "";
+      });
+
+      setTimeout(() => {
+        isResetting.value = false;
+      }, 0);
 
     }
 
@@ -366,5 +456,9 @@ const submit = async () => {
 .switch b {
   color: #3c8dbc;
   cursor: pointer;
+}
+
+.error-input {
+  border: 1px solid red !important;
 }
 </style>

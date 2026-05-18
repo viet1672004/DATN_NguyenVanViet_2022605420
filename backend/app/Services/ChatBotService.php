@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use App\Repositories\ChatBotRepository;
 use App\Models\ChatHistory;
+use Illuminate\Support\Facades\Session;
 
 class ChatBotService
 {
@@ -191,65 +192,180 @@ class ChatBotService
 
     private function ticketAI($message)
     {
+
+    /*
+    |----------------------------------------------------------------------
+    | DETECT PARK FROM MESSAGE
+    |----------------------------------------------------------------------
+    */
+
+    $parkName = null;
+
+    $allParks = $this->repo
+        ->getParks();
+
+    foreach ($allParks as $park) {
+
+        if (
+
+            str_contains(
+                mb_strtolower($message),
+                mb_strtolower($park->ParkName)
+            )
+
+        ) {
+
+            $parkName = $park->ParkName;
+
+            Session::put(
+                'last_park',
+                $parkName
+            );
+
+            break;
+        }
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | FALLBACK SESSION
+    |----------------------------------------------------------------------
+    */
+
+    if (!$parkName) {
+
+        $parkName = Session::get(
+            'last_park'
+        );
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | SEARCH
+    |----------------------------------------------------------------------
+    */
+
+    if (
+
+        $parkName &&
+
+        (
+            str_contains(
+                mb_strtolower($message),
+                'vé'
+            )
+
+            ||
+
+            str_contains(
+                mb_strtolower($message),
+                'giá'
+            )
+
+            ||
+
+            str_contains(
+                mb_strtolower($message),
+                'ticket'
+            )
+        )
+
+    ) {
+
+        $tickets = $this->repo
+            ->getTicketsByParkName(
+                $parkName
+            );
+
+    } else {
+
         $tickets = $this->repo
             ->searchTickets($message);
+    }
 
-        if ($tickets->isEmpty()) {
+    /*
+    |----------------------------------------------------------------------
+    | EMPTY
+    |----------------------------------------------------------------------
+    */
 
-            return [
-                'reply' => 'Không tìm thấy vé phù hợp.'
-            ];
-        }
+    if ($tickets->isEmpty()) {
 
-        $data = [];
+        return [
+            'reply' =>
+                'Hiện chưa tìm thấy vé phù hợp.'
+        ];
+    }
 
-        foreach ($tickets->take(10) as $item) {
+    /*
+    |----------------------------------------------------------------------
+    | DATA
+    |----------------------------------------------------------------------
+    */
 
-            $data[] = [
+    $data = [];
 
-                'Tên vé' =>
-                    $item->TicketName,
+    foreach ($tickets as $item) {
 
-                'Giá' =>
-                    $item->Price,
+        $data[] = [
 
-                'Khu vui chơi' =>
-                    $item->park->ParkName ?? '',
+            'Tên vé' =>
+                $item->TicketName,
 
-                'Địa điểm' =>
-                    $item->park->Location ?? '',
+            'Giá vé' =>
+                number_format(
+                    $item->Price
+                ) . ' VNĐ',
 
-                'Mô tả' =>
-                    $item->Description ?? '',
-            ];
-        }
+            'Khu vui chơi' =>
+                $item->park->ParkName ?? '',
 
-        $prompt = "
+            'Địa điểm' =>
+                $item->park->Location ?? '',
+
+            'Mô tả' =>
+                $item->Description ?? '',
+
+            'Giờ mở cửa' =>
+                $item->park->OpenTime ?? '',
+
+            'Giờ đóng cửa' =>
+                $item->park->CloseTime ?? '',
+        ];
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | PROMPT
+    |----------------------------------------------------------------------
+    */
+
+    $prompt = "
 
 Người dùng hỏi:
 {$message}
 
-Dữ liệu:
+Danh sách vé:
 " . json_encode(
-            $data,
-            JSON_UNESCAPED_UNICODE
-        ) . "
+        $data,
+        JSON_UNESCAPED_UNICODE
+    ) . "
 
-Quy tắc:
-- chỉ dùng dữ liệu được cung cấp
-- không bịa dữ liệu
-- không tự suy diễn
-- chọn dữ liệu phù hợp nhất
-- trả lời ngắn gọn tự nhiên
-- không liệt kê quá nhiều
-- ưu tiên 1 đến 2 gợi ý phù hợp nhất
+Yêu cầu:
+- trả lời đầy đủ
+- giới thiệu vé phù hợp
+- nêu giá vé
+- nêu khu vui chơi
+- trình bày dễ đọc
+- trả lời tự nhiên như nhân viên tư vấn
+- không bịa thông tin
 
 ";
 
-        return [
-            'reply' => $this->askGPT($prompt)
-        ];
-    }
+    return [
+        'reply' => $this->askGPT($prompt)
+    ];
+}
 
     /*
     |--------------------------------------------------------------------------
@@ -259,21 +375,32 @@ Quy tắc:
 
     private function parkAI($message)
     {
+        /*
+        |----------------------------------------------------------------------
+        | SEARCH
+        |----------------------------------------------------------------------
+        */
+
         $parks = $this->repo
             ->searchParks($message);
 
         /*
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         | FALLBACK
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         */
 
         if ($parks->isEmpty()) {
 
             $parks = $this->repo
-                ->getParks()
-                ->take(10);
+                ->getParks();
         }
+
+        /*
+        |----------------------------------------------------------------------
+        | EMPTY
+        |----------------------------------------------------------------------
+        */
 
         if ($parks->isEmpty()) {
 
@@ -284,9 +411,20 @@ Quy tắc:
         }
 
         /*
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
+        | SAVE CONTEXT
+        |----------------------------------------------------------------------
+        */
+
+        Session::put(
+            'last_park',
+            $parks->first()->ParkName
+        );
+
+        /*
+        |----------------------------------------------------------------------
         | DATA
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         */
 
         $data = [];
@@ -313,36 +451,35 @@ Quy tắc:
         }
 
         /*
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         | PROMPT
-        |--------------------------------------------------------------------------
+        |----------------------------------------------------------------------
         */
 
         $prompt = "
 
-Người dùng hỏi:
-{$message}
+    Người dùng hỏi:
+    {$message}
 
-Danh sách khu vui chơi:
-" . json_encode(
+    Danh sách khu vui chơi:
+    " . json_encode(
             $data,
             JSON_UNESCAPED_UNICODE
         ) . "
 
-Quy tắc:
-- chỉ dùng dữ liệu được cung cấp
-- không bịa dữ liệu
-- không tự suy diễn
-- nếu người dùng hỏi đi biển thì ưu tiên:
-  + khu gần biển
-  + công viên nước
-  + hồ bơi
-- nếu có khu phù hợp thì giới thiệu ngắn gọn
-- nếu không có dữ liệu phù hợp thì nói rõ
-- trả lời tự nhiên
-- trả lời ngắn gọn
+    Yêu cầu:
+    - tư vấn chi tiết
+    - ưu tiên khu phù hợp nhất
+    - nếu liên quan biển thì ưu tiên:
+    + công viên nước
+    + hồ bơi
+    + khu gần biển
+    - giới thiệu nổi bật
+    - trình bày dễ đọc
+    - trả lời tự nhiên
+    - không bịa thông tin
 
-";
+    ";
 
         return [
             'reply' => $this->askGPT($prompt)
@@ -461,19 +598,18 @@ Chatbot:
 
             $fullPrompt = "
 
-Bạn là chatbot FunTicket.
+Bạn là chatbot hỗ trợ khách hàng của FunTicket.
 
-Quy tắc:
-- chỉ dùng dữ liệu được cung cấp
-- không bịa dữ liệu
-- không suy diễn
-- nếu không có dữ liệu thì nói không có dữ liệu
-- trả lời tự nhiên như người thật
-- trả lời ngắn gọn
-- ưu tiên 1 câu
-- không dùng icon
-- không tự tạo địa điểm
-- không trả lời lan man
+Nguyên tắc:
+- chỉ sử dụng dữ liệu được cung cấp
+- không bịa thông tin
+- nếu không có dữ liệu thì nói rõ
+- trả lời đầy đủ
+- trình bày rõ ràng
+- ưu tiên trải nghiệm người dùng
+- có thể xuống dòng cho dễ đọc
+- giới thiệu chi tiết nếu phù hợp
+- tư vấn tự nhiên như nhân viên hỗ trợ thật
 
 Lịch sử:
 {$historyText}
@@ -511,11 +647,13 @@ Lịch sử:
 
                         'generationConfig' => [
 
-                            'temperature' => 0.1,
+                            'temperature' => 0.7,
 
-                            'maxOutputTokens' => 120,
+                            'maxOutputTokens' => 10000,
 
-                            'topP' => 0.3
+                            'topP' => 0.9,
+
+                            'topK'  => 40,
                         ]
                     ]
                 );

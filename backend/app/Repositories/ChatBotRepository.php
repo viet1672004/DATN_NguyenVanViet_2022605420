@@ -80,6 +80,38 @@ class ChatBotRepository
             ->get();
     }
 
+    public function getParks()
+    {
+        return Park::query()
+
+            ->where('Status', 1)
+
+            ->limit(10)
+
+            ->get();
+    }
+
+    public function getTicketsByParkName($parkName)
+    {
+        return Ticket::query()
+
+            ->with('park')
+
+            ->whereHas('park', function ($query) use ($parkName) {
+
+                $query->whereRaw(
+                    'LOWER(ParkName) LIKE ?',
+                    ['%' . mb_strtolower($parkName) . '%']
+                );
+            })
+
+            ->where('Status', 1)
+
+            ->limit(10)
+
+            ->get();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | BOOKING

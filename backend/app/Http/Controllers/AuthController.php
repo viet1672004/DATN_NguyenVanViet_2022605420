@@ -24,7 +24,7 @@ class AuthController extends Controller
         );
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
         $result = $this->service->login($request);
 
